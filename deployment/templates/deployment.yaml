@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "charts-deployment.fullname" . }}
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  progressDeadlineSeconds: {{ .Values.deployment.failSeconds }}
+  revisionHistoryLimit: {{ .Values.deployment.revisionHistory }}
+  strategy:
+    {{- toYaml .Values.deployment.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "charts-deployment.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "charts-deployment.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.uri }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.image.command }}
+          command: {{ .Values.image.command }}
+          {{- end }}
+          {{- if .Values.image.args }}
+          args: {{ .Values.image.args }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.deployment.liveness.path }}
+              port: http
+            failureThreshold: {{ .Values.deployment.liveness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.deployment.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.liveness.periodSeconds }}
+            successThreshold: {{ .Values.deployment.liveness.successThreshold }}
+            timeoutSeconds: {{ .Values.deployment.liveness.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.deployment.readiness.path }}
+              port: http
+            failureThreshold: {{ .Values.deployment.readiness.failureThreshold }}
+            initialDelaySeconds: {{ .Values.deployment.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.readiness.periodSeconds }}
+            successThreshold: {{ .Values.deployment.readiness.successThreshold }}
+            timeoutSeconds: {{ .Values.deployment.readiness.timeoutSeconds }}
+          env:
+            {{- toYaml .Values.deployment.env | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          lifecycle:
+            {{- toYaml .Values.deployment.lifecycle | nindent 12 }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: {{ .Values.deployment.deregistrationTime }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

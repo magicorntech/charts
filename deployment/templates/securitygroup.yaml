@@ -1,0 +1,13 @@
+{{- if .Values.security.enabled }}
+apiVersion: vpcresources.k8s.aws/v1beta1
+kind: SecurityGroupPolicy
+metadata:
+  name: {{ .Values.name }}
+spec:
+  serviceAccountSelector: 
+    matchLabels: 
+      app: {{ .Values.name }}
+  securityGroups:
+    groupIds: 
+      - {{ .Values.security.securityGroupId }}
+{{- end }}
