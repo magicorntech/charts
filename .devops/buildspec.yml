@@ -1,0 +1,30 @@
+version: 0.2
+
+env:
+  variables:
+    PROJECT: charts
+
+phases:
+  pre_build:
+    commands:
+      - REPOSITORY_URI=public.ecr.aws/magicorn
+      - TAG_NUMBER="$(git describe --tags --abbrev=0)"
+      - echo $CODEBUILD_SOURCE_VERSION
+      - echo Checking tool versions...
+      - aws --version
+      - helm version
+      - echo Logging in to Amazon ECR...
+      - aws ecr-public get-login-password | docker login --username AWS --password-stdin $REPOSITORY_URI
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Helm package...
+      - helm package deployment
+      - echo Build completed.
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Helm package...
+      - helm push $PROJECT-deployment-$TAG_NUMBER.tgz oci://$REPOSITORY_URI/
+      - echo Post build completed.
+      - echo Build passed.
