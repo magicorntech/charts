@@ -14,7 +14,7 @@ phases:
       - aws --version
       - helm version
       - echo Logging in to Amazon ECR...
-      - aws ecr-public get-login-password | docker login --username AWS --password-stdin $REPOSITORY_URI
+      - aws ecr-public get-login-password | helm registry login --username AWS --password-stdin $REPOSITORY_URI
   build:
     commands:
       - echo Build started on `date`
