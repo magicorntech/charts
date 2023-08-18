@@ -1,6 +1,6 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "charts-deployment.fullname" . -}}
-{{- $svcPort := .Values.service.port -}}
+{{- $svcPort := .Values.service.ports.one.inner -}}
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
   {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
@@ -25,7 +25,7 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '{{ .Values.deployment.liveness.periodSeconds }}'
     alb.ingress.kubernetes.io/healthcheck-path: {{ .Values.deployment.liveness.path }}
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '{{ .Values.deployment.liveness.timeoutSeconds }}'
-    alb.ingress.kubernetes.io/healthy-threshold-count: '{{ .Values.ingress.healthyThreshold }}'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '{{ add1 .Values.deployment.liveness.successThreshold }}'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds={{ .Values.ingress.idleTimeout }}, deletion_protection.enabled=true
     alb.ingress.kubernetes.io/scheme: internet-facing

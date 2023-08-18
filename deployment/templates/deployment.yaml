@@ -44,27 +44,15 @@ spec:
           args: {{ .Values.image.args }}
           {{- end }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
+            {{- range $key, $val := .Values.service.ports }}
+            - name: {{ $key }}
+              containerPort: {{ $val.inner }}
               protocol: TCP
+            {{- end }}    
           livenessProbe:
-            httpGet:
-              path: {{ .Values.deployment.liveness.path }}
-              port: http
-            failureThreshold: {{ .Values.deployment.liveness.failureThreshold }}
-            initialDelaySeconds: {{ .Values.deployment.liveness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.deployment.liveness.periodSeconds }}
-            successThreshold: {{ .Values.deployment.liveness.successThreshold }}
-            timeoutSeconds: {{ .Values.deployment.liveness.timeoutSeconds }}
+            {{- toYaml .Values.deployment.liveness | nindent 12 }}
           readinessProbe:
-            httpGet:
-              path: {{ .Values.deployment.readiness.path }}
-              port: http
-            failureThreshold: {{ .Values.deployment.readiness.failureThreshold }}
-            initialDelaySeconds: {{ .Values.deployment.readiness.initialDelaySeconds }}
-            periodSeconds: {{ .Values.deployment.readiness.periodSeconds }}
-            successThreshold: {{ .Values.deployment.readiness.successThreshold }}
-            timeoutSeconds: {{ .Values.deployment.readiness.timeoutSeconds }}
+            {{- toYaml .Values.deployment.readiness | nindent 12 }}
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}
           resources:
