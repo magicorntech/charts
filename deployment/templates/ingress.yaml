@@ -1,6 +1,11 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "charts-deployment.fullname" . -}}
 {{- $svcPort := .Values.service.ports.one.inner -}}
+{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+  {{- end }}
+{{- end }}
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
 apiVersion: networking.k8s.io/v1
 {{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
@@ -18,7 +23,7 @@ metadata:
     alb.ingress.kubernetes.io/group.name: {{ .Values.ingress.groupName }}
     alb.ingress.kubernetes.io/group.order: '{{ .Values.ingress.groupOrder }}'
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '{{ .Values.deployment.liveness.periodSeconds }}'
-    alb.ingress.kubernetes.io/healthcheck-path: {{ .Values.deployment.liveness.path }}
+    alb.ingress.kubernetes.io/healthcheck-path: {{ .Values.deployment.liveness.httpGet.path }}
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '{{ .Values.deployment.liveness.timeoutSeconds }}'
     alb.ingress.kubernetes.io/healthy-threshold-count: '{{ add1 .Values.deployment.liveness.successThreshold }}'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
