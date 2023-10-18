@@ -43,22 +43,30 @@ spec:
           {{- if .Values.image.args }}
           args: {{ .Values.image.args }}
           {{- end }}
+          {{- if .Values.service.ports }}
           ports:
             {{- range $key, $val := .Values.service.ports }}
             - name: {{ $key }}
               containerPort: {{ $val.inner }}
               protocol: TCP
-            {{- end }}    
+            {{- end }}
+          {{- end }}
+          {{- if .Values.deployment.liveness }}
           livenessProbe:
             {{- toYaml .Values.deployment.liveness | nindent 12 }}
+          {{- end }}
+          {{- if .Values.deployment.readiness }}
           readinessProbe:
             {{- toYaml .Values.deployment.readiness | nindent 12 }}
+          {{- end }}
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.deployment.lifecycle }}
           lifecycle:
             {{- toYaml .Values.deployment.lifecycle | nindent 12 }}
+          {{- end }}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
       dnsPolicy: ClusterFirst
