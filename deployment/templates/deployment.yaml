@@ -38,10 +38,10 @@ spec:
           image: "{{ .Values.image.uri }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.image.command }}
-          command: {{ .Values.image.command }}
+          command: {{- toYaml .Values.image.command | nindent 12 }}
           {{- end }}
           {{- if .Values.image.args }}
-          args: {{ .Values.image.args }}
+          args: {{- toYaml .Values.image.args | nindent 12 }}
           {{- end }}
           {{- if .Values.service.ports }}
           ports:
