@@ -1,0 +1,41 @@
+{{- if .Values.otherPrehooks.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "charts-deployment.fullname" . }}
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-2"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "charts-deployment.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Never
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.uri }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.image.command }}
+          command: {{- toYaml .Values.otherPrehooks.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.image.args }}
+          args: {{- toYaml .Values.otherPrehooks.args | nindent 12 }}
+          {{- end }}
+          env:
+            {{- toYaml .Values.deployment.env | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}
