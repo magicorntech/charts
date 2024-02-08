@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "charts-deployment.fullname" . }}
+  name: {{ include "charts-deployment.fullname" . }}-migrations
   labels:
     {{- include "charts-deployment.labels" . | nindent 4 }}
   annotations:
