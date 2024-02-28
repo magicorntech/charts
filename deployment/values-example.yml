@@ -1,0 +1,164 @@
+# Default values for deployment.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# Magicorn Chart Value v0.1.11
+
+image:
+  uri: __INSERTURIHERE__
+  pullPolicy: IfNotPresent
+  #command: 
+  #  - /usr/bin/supervisord
+  #args:
+  #  - '-c'
+  #  - 'supervisor.conf'
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# only existing configmaps supported
+configMap:
+  enabled: false
+  name: default
+  fileName: .env.prod
+  mountPath: /var/www/html
+
+dbMigrations:
+  enabled: false
+  command: 
+    - /usr/local/bin/python
+  args:
+    - manage.py
+    - migrate
+    - '--noinput'
+
+otherPrehooks:
+  enabled: false
+  command: 
+    - /usr/local/bin/python
+  args:
+    - manage.py
+    - some_action_here
+
+security:
+  enabled: false
+  securityGroupId: sg-0123456789abcdef
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  # name: ""
+
+podAnnotations:
+  cluster-autoscaler.kubernetes.io/safe-to-evict: 'true'
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+deployment:
+  failSeconds: 600
+  revisionHistory: 10
+  env:
+    - name: foo
+      value: bar
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  lifecycle:
+    preStop:
+      exec:
+        command: ["/bin/bash", "-c", "sleep 60"]
+  deregistrationTime: 65
+  liveness:
+    httpGet:
+      port: one
+      path: /healthz
+    failureThreshold: 3
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 5
+  readiness:
+    httpGet:
+      port: one
+      path: /healthz
+    failureThreshold: 3
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 5
+
+service:
+  enabled: true
+  annotations: {}
+  type: ClusterIP
+  ports:
+    one:
+      inner: 8080
+      outer: 8080
+    two:
+      inner: 8090
+      outer: 8090
+
+ingress:
+  enabled: true
+  idleTimeout: 60
+  scheme: internet-facing
+  certificateArn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+  groupName: lbname
+  groupOrder: 100
+  hosts:
+    - host: hostname.example
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    memory: 1Gi
+
+replicaCount: 1
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 40
+  # targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 180
+      selectPolicy: Max
+      policies:
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+    scaleDown:
+      selectPolicy: Disabled
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+
+nodeSelector: {}
+  # eks.amazonaws.com/capacityType: ON_DEMAND
+
+tolerations: []
+
+affinity: {}
