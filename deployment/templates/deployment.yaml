@@ -7,7 +7,7 @@ metadata:
     {{- include "charts-deployment.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.deployment.replicaCount }}
   {{- end }}
   progressDeadlineSeconds: {{ .Values.deployment.failSeconds }}
   revisionHistoryLimit: {{ .Values.deployment.revisionHistory }}
@@ -44,8 +44,6 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.security.securityContext | nindent 12 }}
           image: "{{ .Values.deployment.image.uri }}"
           imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
           {{- if .Values.deployment.image.command }}
@@ -68,13 +66,13 @@ spec:
               readOnly: true
               mountPath: {{ .Values.configMap.mountPath }}
           {{- end }}
-          {{- if .Values.deployment.liveness }}
-          livenessProbe:
-            {{- toYaml .Values.deployment.liveness | nindent 12 }}
-          {{- end }}
           {{- if .Values.deployment.readiness }}
           readinessProbe:
             {{- toYaml .Values.deployment.readiness | nindent 12 }}
+          {{- end }}
+          {{- if .Values.deployment.liveness }}
+          livenessProbe:
+            {{- toYaml .Values.deployment.liveness | nindent 12 }}
           {{- end }}
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}
@@ -84,6 +82,8 @@ spec:
           lifecycle:
             {{- toYaml .Values.deployment.lifecycle | nindent 12 }}
           {{- end }}
+          securityContext:
+            {{- toYaml .Values.security.securityContext | nindent 12 }}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
       dnsPolicy: ClusterFirst

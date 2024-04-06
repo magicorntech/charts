@@ -1,0 +1,78 @@
+{{- if .Values.cronjobs.enabled -}}
+{{- range $job := .Values.cronjobs }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "charts-deployment.fullname" . }}-{{ $job.name }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+spec:
+  schedule: {{ $job.schedule | quote }}
+  concurrencyPolicy: {{ $job.concurrencyPolicy }}
+  failedJobsHistoryLimit: {{ $job.failedJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ $job.successfulJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: {{ include "charts-deployment.fullname" . }}-{{ $job.name }}
+            cron: {{ $job.name }}
+        spec:
+          {{- with .Values.deployment.image.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.security.podSecurityContext | nindent 12 }}
+          {{- if .Values.configMap.enabled }}
+          volumes:
+            - name: app-config
+              configMap:
+                name: {{ .Values.configMap.name }}
+                items:
+                  - key: {{ .Values.configMap.fileName }}
+                    path: {{ .Values.configMap.fileName }}
+                defaultMode: 420
+          {{- end }}
+          containers:
+            - name: {{ $job.name }}
+              image: "{{ .Values.deployment.image.uri }}"
+              imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+              env:
+                {{- toYaml .Values.deployment.env | nindent 16 }}
+              {{- if $job.command }}
+              command: {{ $job.command }}
+              {{- end }}
+              {{- with $job.args }}
+              args:
+                {{ toYaml . | indent 16 }}
+              {{- end }}
+              resources:
+                {{- toYaml .Values.deployment.resources | nindent 16 }}
+              {{- with $job.volumeMounts }}
+              {{- if .Values.configMap.enabled }}
+              volumeMounts:
+                - name: app-config
+                  readOnly: true
+                  mountPath: {{ .Values.configMap.mountPath }}
+              {{- end }}
+            dnsPolicy: ClusterFirst
+            {{- with .Values.deployment.nodeSelector }}
+            nodeSelector:
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            restartPolicy: {{ $job.restartPolicy }}
+            schedulerName: default-scheduler
+            {{- with .Values.deployment.affinity }}
+            affinity:
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with .Values.deployment.tolerations }}
+            tolerations:
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+{{- end }}
+{{- end }}

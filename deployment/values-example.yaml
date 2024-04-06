@@ -5,7 +5,7 @@
 # Author: nops@magicorn.co
 # v0.2.0
 
-# Anything related to deployment object itself.
+# Anything related to deployment object itself.
 deployment:
   image:
     uri: __INSERTURIHERE__
@@ -19,6 +19,9 @@ deployment:
   env:
     - name: foo
       value: bar
+  # this field is ignored if autoscaling is enabled.
+  replicaCount: 1
+  # resources will also be used in prehooks and cronjobs.
   resources:
     requests:
       cpu: 250m
@@ -27,16 +30,7 @@ deployment:
       # we don't use CPU limits anymore.
       # suggested memory limit is the same as the request limit.
       memory: 1Gi
-  liveness:
-    httpGet:
-      # port "one" must be equal to service port "one" below.
-      port: one
-      path: /healthz
-    failureThreshold: 2
-    initialDelaySeconds: 30
-    periodSeconds: 15
-    successThreshold: 1
-    timeoutSeconds: 5
+  # readiness is evaluated first
   readiness:
     httpGet:
       # port "one" must be equal to service port "one" below.
@@ -44,6 +38,17 @@ deployment:
       path: /healthz
     failureThreshold: 2
     initialDelaySeconds: 15
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 5
+  # liveness is evaluated later, if deployment is ready.
+  liveness:
+    httpGet:
+      # port "one" must be equal to service port "one" below.
+      port: one
+      path: /healthz
+    failureThreshold: 2
+    initialDelaySeconds: 30
     periodSeconds: 15
     successThreshold: 1
     timeoutSeconds: 5
@@ -62,7 +67,7 @@ deployment:
   failSeconds: 600
   revisionHistory: 25
   nodeSelector: {}
-    # eks.amazonaws.com/capacityType: ON_DEMAND
+    # eks.amazonaws.com/capacityType: ON_DEMAND
   tolerations: []
   affinity: {}
 
@@ -98,8 +103,6 @@ ingress:
         - path: /
           pathType: Prefix
 
-# this field is ignored if autoscaling is enabled.
-replicaCount: 1
 autoscaling:
   enabled: false
   minReplicas: 2
@@ -129,7 +132,7 @@ configMap:
   mountPath: /var/www/html
 
 prehooks:
-  # set true here if your application has database migrations.
+  # set true here if your application has database migrations.
   dbMigrations:
     enabled: false
     command: 
@@ -147,6 +150,30 @@ prehooks:
     args:
       - manage.py
       - some_action_here
+
+cronjobs:
+  # enable crons
+  enabled: false
+  - name: cron1
+    schedule: "0 2 * * *"
+    command: ["/usr/local/bin/php"]
+    args:
+      - "artisan"
+      - "schedule:run"
+    failedJobsHistoryLimit: 3
+    successfulJobsHistoryLimit: 5
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+  - name: cron2
+    schedule: "0 5 * * *"
+    command: ["/usr/local/bin/php"]
+    args:
+      - "artisan"
+      - "schedule:run"
+    failedJobsHistoryLimit: 3
+    successfulJobsHistoryLimit: 5
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
 
 security:
   # set true if you'd need k8s api permissions in your application.
@@ -166,7 +193,7 @@ security:
     #   resources: ["pods/exec"]
     #   verbs: ["create", "patch", "delete"]
 
-  # set true if you'd like to utilize AWS security groups to gain granular network access control to your deployment.
+  # set true if you'd like to utilize AWS security groups to gain granular network access control to your deployment.
   # security group must be managed outside helm/terraform.
   sgPolicy:
     enabled: false

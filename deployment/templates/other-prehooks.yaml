@@ -24,6 +24,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
       restartPolicy: Never
       containers:
         - name: {{ .Chart.Name }}
