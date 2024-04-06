@@ -1,0 +1,17 @@
+{{- if .Values.security.serviceAccount.enabled -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if .Values.security.serviceAccount.clusterWideAccess }}"ClusterRole"{{ else }}"Role"{{ end }}
+metadata:
+  name: {{ include "charts-deployment.serviceAccountName" . }}
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+  {{ if not .Values.security.serviceAccount.clusterWideAccess -}}
+  namespace: {{ .Release.Namespace | quote }}
+  {{- end }}
+rules:
+{{ range .Values.security.serviceAccount.rules }}
+- apiGroups: {{ (default (list "") .apiGroups) | toJson }}
+  resources: {{ (default (list "*") .resources) | toJson }}
+  verbs: {{ (default (list "*") .verbs) | toJson }}
+{{- end }}
+{{- end -}}

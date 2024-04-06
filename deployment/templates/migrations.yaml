@@ -1,8 +1,9 @@
-{{- if .Values.dbMigrations.enabled }}
+{{- if .Values.prehooks.dbMigrations.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "charts-deployment.fullname" . }}-migrations
+  namespace: "{{ .Release.Namespace }}"
   labels:
     {{- include "charts-deployment.labels" . | nindent 4 }}
   annotations:
@@ -12,30 +13,30 @@ metadata:
 spec:
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- with .Values.deployment.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "charts-deployment.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.deployment.image.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       restartPolicy: Never
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.uri }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if .Values.image.command }}
-          command: {{- toYaml .Values.dbMigrations.command | nindent 12 }}
+          image: "{{ .Values.deployment.image.uri }}"
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          {{- if .Values.prehooks.dbMigrations.command }}
+          command: {{- toYaml .Values.prehooks.dbMigrations.command | nindent 12 }}
           {{- end }}
-          {{- if .Values.image.args }}
-          args: {{- toYaml .Values.dbMigrations.args | nindent 12 }}
+          {{- if .Values.prehooks.dbMigrations.args }}
+          args: {{- toYaml .Values.prehooks.dbMigrations.args | nindent 12 }}
           {{- end }}
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.deployment.resources | nindent 12 }}
 {{- end }}

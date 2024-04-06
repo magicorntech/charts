@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "charts-deployment.fullname" . }}
+  namespace: "{{ .Release.Namespace }}"
   labels:
     {{- include "charts-deployment.labels" . | nindent 4 }}
 spec:
@@ -17,20 +18,20 @@ spec:
       {{- include "charts-deployment.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- with .Values.deployment.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "charts-deployment.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.deployment.image.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.security.podSecurityContext | nindent 8 }}
       {{- if .Values.configMap.enabled }}
       volumes:
         - name: app-config
@@ -44,14 +45,14 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.uri }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if .Values.image.command }}
-          command: {{- toYaml .Values.image.command | nindent 12 }}
+            {{- toYaml .Values.security.securityContext | nindent 12 }}
+          image: "{{ .Values.deployment.image.uri }}"
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          {{- if .Values.deployment.image.command }}
+          command: {{- toYaml .Values.deployment.image.command | nindent 12 }}
           {{- end }}
-          {{- if .Values.image.args }}
-          args: {{- toYaml .Values.image.args | nindent 12 }}
+          {{- if .Values.deployment.image.args }}
+          args: {{- toYaml .Values.deployment.image.args | nindent 12 }}
           {{- end }}
           {{- if .Values.service.ports }}
           ports:
@@ -78,7 +79,7 @@ spec:
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.deployment.resources | nindent 12 }}
           {{- if .Values.deployment.lifecycle }}
           lifecycle:
             {{- toYaml .Values.deployment.lifecycle | nindent 12 }}
@@ -86,18 +87,18 @@ spec:
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
       dnsPolicy: ClusterFirst
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.deployment.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       restartPolicy: Always
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: {{ .Values.deployment.deregistrationTime }}
-      {{- with .Values.affinity }}
+      {{- with .Values.deployment.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.deployment.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
