@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "charts-deployment.fullname" . }}
+  name: {{ include "charts-deployment.name" . }}
   namespace: "{{ .Release.Namespace }}"
   labels:
     {{- include "charts-deployment.labels" . | nindent 4 }}

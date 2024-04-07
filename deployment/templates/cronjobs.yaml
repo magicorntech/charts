@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ include "charts-deployment.fullname" . }}-{{ $job.name }}
+  name: {{ include "charts-deployment.name" . }}-{{ $job.name }}
   namespace: "{{ .Release.Namespace }}"
   labels:
     {{- include "charts-deployment.labels" . | nindent 4 }}
@@ -17,7 +17,7 @@ spec:
       template:
         metadata:
           labels:
-            app: {{ include "charts-deployment.fullname" . }}-{{ $job.name }}
+            app: {{ include "charts-deployment.name" . }}-{{ $job.name }}
             cron: {{ $job.name }}
         spec:
           {{- with .Values.deployment.image.imagePullSecrets }}
@@ -52,7 +52,6 @@ spec:
               {{- end }}
               resources:
                 {{- toYaml .Values.deployment.resources | nindent 16 }}
-              {{- with $job.volumeMounts }}
               {{- if .Values.configMap.enabled }}
               volumeMounts:
                 - name: app-config

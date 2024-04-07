@@ -2,16 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "charts-deployment.name" -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "charts-deployment.fullname" -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- printf "%s" .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -39,6 +30,7 @@ Selector labels
 {{- define "charts-deployment.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "charts-deployment.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+k8s.magicorn.net/chart-version: {{ .Chart.Version }}
 {{- end }}
 
 {{/*
@@ -46,5 +38,6 @@ Create the name of the service account to use
 */}}
 {{- define "charts-deployment.serviceAccountName" -}}
 {{- if .Values.security.serviceAccount.enabled }}
-{{- default (include "charts-deployment.fullname" .) }}
+{{- default (include "charts-deployment.name" .) }}
+{{- end }}
 {{- end }}
