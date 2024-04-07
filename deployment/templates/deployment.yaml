@@ -52,7 +52,7 @@ spec:
           {{- if .Values.deployment.image.args }}
           args: {{- toYaml .Values.deployment.image.args | nindent 12 }}
           {{- end }}
-          {{- if .Values.service.ports }}
+          {{- if .Values.service.enabled }}
           ports:
             {{- range $key, $val := .Values.service.ports }}
             - name: {{ $key }}

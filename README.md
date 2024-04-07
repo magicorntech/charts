@@ -2,7 +2,7 @@
 Magicorn Made Helm Charts
 
 ## Disclaimer
-Please read values.yaml carefully!! All the nick-nack explained there.
+Please read values-example.yaml carefully!! All the nick-nack explained there.
 
 This is a generic Helm deployment chart that package generic service applications for your private Kubernetes platform. Works very well with AWS Elastic Kubernetes Service and AWS Application Load Balancer Ingress Controller, this chart is not recommended to be used with other platforms.
 
