@@ -160,27 +160,28 @@ prehooks:
 
 # Enable crons of the deployment. You can use as many crons as you want.
 cronjobs:
+- name: cron1
   enabled: false
-  #- name: cron1
-  #  schedule: "0 2 * * *"
-  #  command: ["/usr/local/bin/php"]
-  #  args:
-  #    - "artisan"
-  #    - "schedule:run"
-  #  failedJobsHistoryLimit: 3
-  #  successfulJobsHistoryLimit: 5
-  #  concurrencyPolicy: Forbid
-  #  restartPolicy: OnFailure
-  #- name: cron2
-  #  schedule: "0 5 * * *"
-  #  command: ["/usr/local/bin/php"]
-  #  args:
-  #    - "artisan"
-  #    - "schedule:run"
-  #  failedJobsHistoryLimit: 3
-  #  successfulJobsHistoryLimit: 5
-  #  concurrencyPolicy: Forbid
-  #  restartPolicy: OnFailure
+  schedule: "0 2 * * *"
+  command: ["/usr/local/bin/php"]
+  args:
+  - "artisan"
+  - "schedule:run"
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 5
+  concurrencyPolicy: Forbid
+  restartPolicy: OnFailure
+- name: cron2
+  enabled: false
+  schedule: "0 5 * * *"
+  command: ["/usr/local/bin/php"]
+  args:
+  - "artisan"
+  - "schedule:run"
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 5
+  concurrencyPolicy: Forbid
+  restartPolicy: OnFailure
 
 security:
   # Set true, if you'd need Kubernetes API permissions in your application.
