@@ -93,12 +93,13 @@ service:
       outer: 443
 
 # External access to the service object above but you can't only receive external traffic, you must also enable your application for internal traffic as well.
-# By default, ingress traffic is forwarded to outer service port of "one".
+# By default, ingress traffic is forwarded to "outer" service port of "one".
 ingress:
   enabled: true
   idleTimeout: 60
   scheme: internet-facing
   certificateArn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+  wafArn: null # You can either paste v2 Web ACL ARN or skip by "null".
   sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
   groupName: loadBalancerNameHere
   # It's really important for you to manage groupOrders manually, it affects the LCU cost and precedence.
@@ -118,18 +119,19 @@ autoscaling:
   # targetMemoryUtilizationPercentage: 80
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 180
+      stabilizationWindowSeconds: 120
       selectPolicy: Max
       policies:
       - type: Pods
         value: 4
-        periodSeconds: 15
+        periodSeconds: 60
     scaleDown:
-      selectPolicy: Disabled
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
       policies:
       - type: Percent
-        value: 100
-        periodSeconds: 15
+        value: 25
+        periodSeconds: 60
 
 # Set true here if you have a ConfigMap already deployed into the cluster, must reside inside the same namespace within the deployment though.
 configMap:

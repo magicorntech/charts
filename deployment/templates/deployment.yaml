@@ -43,7 +43,7 @@ spec:
             defaultMode: 420
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ include "charts-deployment.name" . }}
           image: "{{ .Values.deployment.image.uri }}"
           imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
           {{- if .Values.deployment.image.command }}
