@@ -2,12 +2,12 @@
 apiVersion: vpcresources.k8s.aws/v1beta1
 kind: SecurityGroupPolicy
 metadata:
-  name: {{ .Values.name }}
+  name: {{ include "charts-deployment.name" . }}
   namespace: "{{ .Release.Namespace }}"
 spec:
   serviceAccountSelector: 
     matchLabels: 
-      app: {{ .Values.name }}
+      {{- include "charts-deployment.selectorLabels" . | nindent 6 }}
   securityGroups:
     groupIds: 
       - {{ .Values.security.sgPolicy.securityGroupId }}
