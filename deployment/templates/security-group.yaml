@@ -1,3 +1,4 @@
+{{- if eq .Values.destination "aws" }}
 {{- if .Values.security.sgPolicy.enabled }}
 apiVersion: vpcresources.k8s.aws/v1beta1
 kind: SecurityGroupPolicy
@@ -11,4 +12,5 @@ spec:
   securityGroups:
     groupIds: 
       - {{ .Values.security.sgPolicy.securityGroupId }}
+{{- end }}
 {{- end }}

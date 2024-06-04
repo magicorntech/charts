@@ -1,4 +1,4 @@
-{{- if eq (include "destination") "datacenter" }}
+{{- if eq .Values.destination "datacenter" }}
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "charts-deployment.name" . -}}
 {{- $svcPort := .Values.service.ports.one.outer -}}
