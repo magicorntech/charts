@@ -3,7 +3,10 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.2.0
+# v0.3.0
+
+# Determines which templates to use during deployment. Valid values are: aws, datacenter. (for now) 
+destination: aws
 
 # Anything related to deployment object itself. Must. Fill. This!
 deployment:
@@ -96,8 +99,10 @@ service:
 # By default, ingress traffic is forwarded to "outer" service port of "one".
 ingress:
   enabled: true
+  annotations: {} # You can add additional annotations if you'd like.
+  className: null # Ignored if "destination == aws".
   idleTimeout: 60
-  scheme: internet-facing
+  scheme: internet-facing # or "internal".
   certificateArn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
   wafArn: null # You can either paste v2 Web ACL ARN or skip by "null".
   sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
@@ -194,12 +199,12 @@ security:
     # Cluster-wide or only within namespace.
     clusterWideAccess: false
     # Resource access rules, set as many as you would need.
-    rules: []
-    #- resources: ["configmaps", "events", "pods", "pods/attach", "pods/exec", "secrets", "services"]
-    #  verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
-    #- apiGroups: [""]
-    #  resources: ["pods/exec"]
-    #  verbs: ["create", "patch", "delete"]
+    rules:
+    - resources: ["configmaps", "events", "pods", "pods/attach", "pods/exec", "secrets", "services"]
+      verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+    - apiGroups: [""]
+      resources: ["pods/exec"]
+      verbs: ["create", "patch", "delete"]
 
   # Set true, if you'd like to utilize AWS Security Groups to gain granular network access control to your deployment.
   # Security group must be managed outside Helm/Terraform.
