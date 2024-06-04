@@ -1,3 +1,4 @@
+{{- if eq (include "destination") "aws" }}
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "charts-deployment.name" . -}}
 {{- $svcPort := .Values.service.ports.one.outer -}}
@@ -57,4 +58,5 @@ spec:
               {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}
