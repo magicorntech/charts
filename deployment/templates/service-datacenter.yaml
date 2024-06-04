@@ -1,0 +1,24 @@
+{{- if eq (include "destination") "datacenter" }}
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "charts-deployment.name" . }}
+  namespace: "{{ .Release.Namespace }}"
+  annotations:
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range $key, $val := .Values.service.ports }}
+    - name: {{ $key }}
+      targetPort: {{ $val.inner }}
+      port: {{ $val.outer }}
+      protocol: TCP
+    {{- end }}
+  selector:
+    {{- include "charts-deployment.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}
