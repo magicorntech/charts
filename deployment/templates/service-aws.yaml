@@ -16,6 +16,7 @@ metadata:
     service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: '{{ .Values.deployment.liveness.periodSeconds }}'
     service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: deregistration_delay.timeout_seconds={{ .Values.deployment.deregistrationTime }}, deregistration_delay.connection_termination.enabled=true, preserve_client_ip.enabled=true
     service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zone.enabled=true, deletion_protection.enabled=true
+    {{- toYaml .Values.service.annotations | nindent 4 }}
   {{- else }}
     {{- toYaml .Values.service.annotations | nindent 4 }}
   {{- end }}

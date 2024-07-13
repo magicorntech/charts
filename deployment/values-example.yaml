@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.3.0
+# v0.3.1
 
 # Determines which templates to use during deployment. Valid values are: aws, datacenter. (for now) 
 destination: aws
@@ -81,7 +81,7 @@ deployment:
 # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
 service:
   enabled: true
-  annotations: {}
+  annotations: {} # You can add additional annotations if you'd like.
   # If you are deploying a OSI Layer 4 socket application, making this type: LoadBalancer would create an internet-facing Network Load Balancer and traffic is forwarded to outer service of "one". Check templates/service.yaml for details.
   type: ClusterIP
   ports:
