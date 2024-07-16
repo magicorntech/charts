@@ -17,6 +17,7 @@ Common labels
 */}}
 {{- define "charts-deployment.labels" -}}
 helm.sh/chart: {{ include "charts-deployment.chart" . }}
+k8s.magicorn.net/chart-version: {{ .Chart.Version }}
 {{ include "charts-deployment.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
@@ -30,7 +31,6 @@ Selector labels
 {{- define "charts-deployment.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "charts-deployment.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-k8s.magicorn.net/chart-version: {{ .Chart.Version }}
 {{- end }}
 
 {{/*
