@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.3.2
+# v0.3.3
 
 # Determines which templates to use during deployment. Valid values are: aws, datacenter. (for now) 
 destination: aws

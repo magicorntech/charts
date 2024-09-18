@@ -26,6 +26,16 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
       restartPolicy: Never
+      {{- if .Values.configMap.enabled }}
+      volumes:
+        - name: app-config
+          configMap:
+            name: {{ .Values.configMap.name }}
+            items:
+              - key: {{ .Values.configMap.fileName }}
+                path: {{ .Values.configMap.fileName }}
+            defaultMode: 420
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.deployment.image.uri }}"
@@ -35,6 +45,13 @@ spec:
           {{- end }}
           {{- if .Values.prehooks.otherPrehooks.args }}
           args: {{- toYaml .Values.prehooks.otherPrehooks.args | nindent 12 }}
+          {{- end }}
+          {{- if .Values.configMap.enabled }}
+          volumeMounts:
+            - name: app-config
+              readOnly: true
+              mountPath: {{ .Values.configMap.mountPath }}
+              subPath: {{ .Values.configMap.fileName }}
           {{- end }}
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}

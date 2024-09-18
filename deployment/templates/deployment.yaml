@@ -65,6 +65,7 @@ spec:
             - name: app-config
               readOnly: true
               mountPath: {{ .Values.configMap.mountPath }}
+              subPath: {{ .Values.configMap.fileName }}
           {{- end }}
           {{- if .Values.deployment.readiness }}
           readinessProbe:

@@ -57,6 +57,7 @@ spec:
               - name: app-config
                 readOnly: true
                 mountPath: {{ .Values.configMap.mountPath }}
+                subPath: {{ .Values.configMap.fileName }}
             {{- end }}
           dnsPolicy: ClusterFirst
           {{- with .Values.deployment.nodeSelector }}
