@@ -14,13 +14,15 @@ metadata:
   namespace: "{{ .Release.Namespace }}"
   labels:
     {{- include "charts-deployment.labels" . | nindent 4 }}
-  annotations:
-    {{- toYaml .Values.ingress.annotations | nindent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
     {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}
+      {{- if .annotations }}
+      annotations:
+        {{- toYaml .annotations | nindent 8 }}
+      {{- end }}
       http:
         paths:
           {{- range .paths }}
