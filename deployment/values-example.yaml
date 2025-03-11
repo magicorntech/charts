@@ -98,7 +98,7 @@ service:
 # External access to the service object above but you can't only receive external traffic, you must also enable your application for internal traffic as well.
 # By default, ingress traffic is forwarded to "outer" service port of "one".
 ingress:
-  enabled: true
+- enabled: true
   annotations: {} # You can add additional annotations if you'd like.
   className: null # Ignored if "destination == aws".
   idleTimeout: 60
@@ -106,11 +106,27 @@ ingress:
   certificateArn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
   wafArn: null # You can either paste v2 Web ACL ARN or skip by "null".
   sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
-  groupName: loadBalancerNameHere
+  groupName: externalloadBalancerNameHere
   # It's really important for you to manage groupOrders manually, it affects the LCU cost and precedence.
   groupOrder: 100
   hosts:
   - host: hostname.example
+    paths:
+    - path: /
+      pathType: Prefix
+- enabled: true
+  annotations: {} # You can add additional annotations if you'd like.
+  className: null # Ignored if "destination == aws".
+  idleTimeout: 60
+  scheme: internal # or "internal".
+  certificateArn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+  wafArn: null # You can either paste v2 Web ACL ARN or skip by "null".
+  sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+  groupName: internalloadBalancerNameHere
+  # It's really important for you to manage groupOrders manually, it affects the LCU cost and precedence.
+  groupOrder: 200
+  hosts:
+  - host: hostname.int.example
     paths:
     - path: /
       pathType: Prefix
@@ -124,7 +140,7 @@ autoscaling:
   # targetMemoryUtilizationPercentage: 80
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 120
+      stabilizationWindowSeconds: 60
       selectPolicy: Max
       policies:
       - type: Pods
@@ -174,6 +190,12 @@ cronjobs:
   args:
   - "artisan"
   - "schedule:run"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 256Mi
   failedJobsHistoryLimit: 3
   successfulJobsHistoryLimit: 5
   concurrencyPolicy: Forbid
@@ -185,6 +207,12 @@ cronjobs:
   args:
   - "artisan"
   - "schedule:run"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 512Mi
   failedJobsHistoryLimit: 3
   successfulJobsHistoryLimit: 5
   concurrencyPolicy: Forbid
