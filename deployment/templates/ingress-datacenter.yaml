@@ -1,25 +1,26 @@
 {{- if eq .Values.destination "datacenter" }}
-{{- if .Values.ingress.enabled -}}
-{{- $fullName := include "charts-deployment.name" . -}}
-{{- $svcPort := .Values.service.ports.one.outer -}}
-{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+{{- $root := . }}
+{{- $ingressLength := len .Values.ingress }}
+{{- range $index, $ingress := .Values.ingress }}
+{{- if $ingress.enabled -}}
+{{- if and $ingress.className (not (semverCompare ">=1.18-0" $root.Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey $ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set $ingress.annotations "kubernetes.io/ingress.class" $ingress.className}}
   {{- end }}
 {{- end }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
-  namespace: "{{ .Release.Namespace }}"
+  name: {{ include "charts-deployment.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
+  namespace: "{{ $root.Release.Namespace }}"
   labels:
-    {{- include "charts-deployment.labels" . | nindent 4 }}
+    {{- include "charts-deployment.labels" $root | nindent 4 }}
   annotations:
-    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    {{- toYaml $ingress.annotations | nindent 4 }}
 spec:
-  ingressClassName: {{ .Values.ingress.className }}
+  ingressClassName: {{ $ingress.className }}
   rules:
-    {{- range .Values.ingress.hosts }}
+    {{- range $ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
@@ -31,14 +32,16 @@ spec:
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                name: {{ $fullName }}
+                name: {{ include "charts-deployment.name" $root }}
                 port:
-                  number: {{ $svcPort }}
+                  number: {{ $root.Values.service.ports.one.outer }}
               {{- else }}
-              serviceName: {{ $fullName }}
-              servicePort: {{ $svcPort }}
+              serviceName: {{ include "charts-deployment.name" $root }}
+              servicePort: {{ $root.Values.service.ports.one.outer }}
               {{- end }}
           {{- end }}
     {{- end }}
+---
+{{- end }}
 {{- end }}
 {{- end }}
