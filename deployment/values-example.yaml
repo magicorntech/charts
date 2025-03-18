@@ -3,9 +3,9 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.4.0
+# v0.5.0
 
-# Determines which templates to use during deployment. Valid values are: aws, datacenter. (for now) 
+# Determines which templates to use during deployment. Valid values are: aws, hcp and datacenter. (for now) 
 destination: aws
 
 # Anything related to deployment object itself. Must. Fill. This!
@@ -100,31 +100,31 @@ service:
 ingress:
 - enabled: true
   annotations: {} # You can add additional annotations if you'd like.
-  className: null # Ignored if "destination == aws".
+  className: null # Ignored if "destination == aws || destination == hcp".
   idleTimeout: 60
   scheme: internet-facing # or "internal".
-  certificateArn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
-  wafArn: null # You can either paste v2 Web ACL ARN or skip by "null".
+  certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+  wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
   sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
-  groupName: externalloadBalancerNameHere
-  # It's really important for you to manage groupOrders manually, it affects the LCU cost and precedence.
-  groupOrder: 100
+  lbId: externalloadBalancerNameHere
+  # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
+  lbOrder: 100
   hosts:
   - host: hostname.example
     paths:
     - path: /
       pathType: Prefix
-- enabled: true
+- enabled: false
   annotations: {} # You can add additional annotations if you'd like.
-  className: null # Ignored if "destination == aws".
+  className: null # Ignored if "destination == aws || destination == hcp".
   idleTimeout: 60
   scheme: internal # or "internal".
-  certificateArn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
-  wafArn: null # You can either paste v2 Web ACL ARN or skip by "null".
+  certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+  wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
   sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
-  groupName: internalloadBalancerNameHere
-  # It's really important for you to manage groupOrders manually, it affects the LCU cost and precedence.
-  groupOrder: 200
+  lbId: internalloadBalancerNameHere
+  # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
+  lbOrder: 200
   hosts:
   - host: hostname.int.example
     paths:
