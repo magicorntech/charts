@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.5.0
+# v0.5.1
 
 # Determines which templates to use during deployment. Valid values are: aws, hcp and datacenter. (for now) 
 destination: aws
