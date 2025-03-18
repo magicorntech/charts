@@ -20,6 +20,7 @@ metadata:
     {{- toYaml $ingress.annotations | nindent 4 }}
     {{- end }}
     kubernetes.io/elb.class: performance
+    kubernetes.io/elb.http2-enable: 'true'
     kubernetes.io/elb.id: {{ $ingress.lbId }}
     kubernetes.io/elb.listener-master-ingress: {{ $root.Release.Namespace }}/{{ include "charts-deployment.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
     kubernetes.io/elb.port: '443'
