@@ -1,0 +1,20 @@
+{{- if .Values.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "charts-deployment.name" . }}-pvc
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.pvc.accessModes | nindent 4 }}
+  storageClassName: {{ if and (eq .Values.destination "datacenter") .Values.pvc.azure.enabled }}
+    {{ .Values.pvc.azure.storageClass | quote }}
+  {{ else }}
+    {{ .Values.pvc.storageClass | quote }}
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ required "pvc.size is required" .Values.pvc.size | quote }}
+{{- end }}
