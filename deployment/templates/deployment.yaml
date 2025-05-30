@@ -49,6 +49,7 @@ spec:
             claimName: {{ include "charts-deployment.name" . }}-pvc
         {{- end }}
 
+
       containers:
         - name: {{ include "charts-deployment.name" . }}
           image: "{{ .Values.deployment.image.uri }}"
@@ -78,9 +79,9 @@ spec:
             {{- if .Values.pvc.enabled }}
             - name: storage
               mountPath: {{ .Values.pvc.mountPath }}
-              readOnly: {{ if and (eq .Values.destination "datacenter") .Values.pvc.azure.enabled }}{{ .Values.pvc.azure.readOnly }}{{ else }}false{{ end }}
+              readOnly: false
             {{- end }}
-
+            
           {{- if .Values.deployment.readiness }}
           readinessProbe:
             {{- toYaml .Values.deployment.readiness | nindent 12 }}

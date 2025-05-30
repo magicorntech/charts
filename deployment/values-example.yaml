@@ -256,8 +256,4 @@ pvc:
   size: 100Gi                    
   accessModes:
     - ReadWriteMany
-  storageClass: ""
-  azure:
-    enabled: false # True for azure aks
-    storageClass: azurefile-csi
-    readOnly: false
+  storageClass: azurefile-csi

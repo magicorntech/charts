@@ -9,11 +9,7 @@ metadata:
 spec:
   accessModes:
     {{- toYaml .Values.pvc.accessModes | nindent 4 }}
-  storageClassName: {{ if and (eq .Values.destination "datacenter") .Values.pvc.azure.enabled }}
-    {{ .Values.pvc.azure.storageClass | quote }}
-  {{ else }}
-    {{ .Values.pvc.storageClass | quote }}
-  {{ end }}
+  storageClassName: {{ .Values.pvc.storageClass | quote }}
   resources:
     requests:
       storage: {{ required "pvc.size is required" .Values.pvc.size | quote }}
