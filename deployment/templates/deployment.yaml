@@ -79,6 +79,7 @@ spec:
             {{- if .Values.pvc.enabled }}
             - name: storage
               mountPath: {{ .Values.pvc.mountPath }}
+              subPath: {{ .Values.pvc.subPath }}
               readOnly: false
             {{- end }}
           {{- end }}
