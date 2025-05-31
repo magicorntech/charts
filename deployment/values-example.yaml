@@ -255,7 +255,7 @@ pvc:
   # Support for stateful sets will be provided in the future.
   enabled: false
   mountPath: /efs/test
-  subPath: tests
+  subPath: test
   size: 100Gi
   accessModes:
     - ReadWriteMany
