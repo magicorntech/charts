@@ -253,6 +253,7 @@ security:
 pvc:
   enabled: false
   mountPath: /efs/test
+  subPath: /tests
   size: 100Gi                    
   accessModes:
     - ReadWriteMany
