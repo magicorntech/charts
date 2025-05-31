@@ -21,6 +21,7 @@ When you breakdown the chart values you'll notice;
 * prehooks
 * cronjobs
 * security
+* pvc
 
 It's divided into eight (8) different value groups for simplicity. Deployment must be filled in at bare minimum in order for this chart to do it's job. All other value groups are optional.
 
@@ -30,7 +31,7 @@ We maintain this chart at our own [AWS ECR Gallery](https://gallery.ecr.aws/magi
 Below is a CI/CD oneliner example for a seamless deployment experience.
  
 ```
-$ helm upgrade --install --create-namespace $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment -f .devops/apps/values-$ENVIRONMENT.yaml -n $APP_NAME-$ENVIRONMENT --set deployment.image.uri=$IMAGE_FULLURI --version 0.5.1
+$ helm upgrade --install --create-namespace $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment -f .devops/apps/values-$ENVIRONMENT.yaml -n $APP_NAME-$ENVIRONMENT --set deployment.image.uri=$IMAGE_FULLURI --version 0.6.0
 ```
 
 Use at your own risk, as Magicorn we don't take responsibility.
