@@ -249,3 +249,11 @@ security:
   #  readOnlyRootFilesystem: true
   #  runAsNonRoot: true
   #  runAsUser: 1000
+
+pvc:
+  enabled: false
+  mountPath: /efs/test
+  size: 100Gi                    
+  accessModes:
+    - ReadWriteMany
+  storageClass: azurefile-csi

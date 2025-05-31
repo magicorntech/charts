@@ -32,8 +32,9 @@ spec:
       serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.security.podSecurityContext | nindent 8 }}
-      {{- if .Values.configMap.enabled }}
+      {{- if or .Values.configMap.enabled .Values.pvc.enabled }}
       volumes:
+        {{- if .Values.configMap.enabled }}
         - name: app-config
           configMap:
             name: {{ .Values.configMap.name }}
@@ -41,7 +42,14 @@ spec:
               - key: {{ .Values.configMap.fileName }}
                 path: {{ .Values.configMap.fileName }}
             defaultMode: 420
+        {{- end }}
+        {{- if .Values.pvc.enabled }}
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ include "charts-deployment.name" . }}-pvc
+        {{- end }}
       {{- end }}
+
       containers:
         - name: {{ include "charts-deployment.name" . }}
           image: "{{ .Values.deployment.image.uri }}"
@@ -60,13 +68,21 @@ spec:
               protocol: TCP
             {{- end }}
           {{- end }}
-          {{- if .Values.configMap.enabled }}
+          {{- if or .Values.configMap.enabled .Values.pvc.enabled }}
           volumeMounts:
+            {{- if .Values.configMap.enabled }}
             - name: app-config
               readOnly: true
               mountPath: {{ .Values.configMap.mountPath }}
               subPath: {{ .Values.configMap.fileName }}
+            {{- end }}
+            {{- if .Values.pvc.enabled }}
+            - name: storage
+              mountPath: {{ .Values.pvc.mountPath }}
+              readOnly: false
+            {{- end }}
           {{- end }}
+          
           {{- if .Values.deployment.readiness }}
           readinessProbe:
             {{- toYaml .Values.deployment.readiness | nindent 12 }}
