@@ -5,7 +5,7 @@
 # Author: nops@magicorn.co
 # v0.6.0
 
-# Determines which templates to use during deployment. Valid values are: aws, hcp and datacenter. (for now) 
+# Determines which templates to use during deployment. Valid values are: aws, hcp, datacenter and gke. 
 destination: aws
 
 # Anything related to deployment object itself. Must. Fill. This!
@@ -76,12 +76,17 @@ deployment:
   #  eks.amazonaws.com/capacityType: ON_DEMAND
   tolerations: []
   affinity: {}
+  gke:
+    nodeSelector: {}
+    tolerations: []
 
 # Cluster-wide service object details.
 # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
 service:
   enabled: true
   annotations: {} # You can add additional annotations if you'd like.
+  gke:
+    loadBalancerSourceRanges: []
   # If you are deploying a OSI Layer 4 socket application, making this type: LoadBalancer would create an internet-facing Network Load Balancer and traffic is forwarded to outer service of "one". Check templates/service.yaml for details.
   type: ClusterIP
   ports:
@@ -102,34 +107,42 @@ ingress:
   annotations: {} # You can add additional annotations if you'd like.
   className: null # Ignored if "destination == aws || destination == hcp".
   idleTimeout: 60
-  scheme: internet-facing # or "internal".
-  certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
-  wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
-  sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
-  lbId: externalloadBalancerNameHere
-  # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
-  lbOrder: 100
   hosts:
   - host: hostname.example
     paths:
     - path: /
       pathType: Prefix
+  aws:
+    scheme: internet-facing # or "internal".
+    certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+    wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
+    sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    lbId: externalloadBalancerNameHere
+    # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
+    lbOrder: 100
+  gke:
+    frontendConfig: null
+    backendConfig: null
 - enabled: false
   annotations: {} # You can add additional annotations if you'd like.
   className: null # Ignored if "destination == aws || destination == hcp".
   idleTimeout: 60
-  scheme: internal # or "internal".
-  certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
-  wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
-  sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
-  lbId: internalloadBalancerNameHere
-  # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
-  lbOrder: 200
   hosts:
   - host: hostname.int.example
     paths:
     - path: /
       pathType: Prefix
+  aws:
+    scheme: internal # or "internal".
+    certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+    wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
+    sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    lbId: internalloadBalancerNameHere
+    # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
+    lbOrder: 200
+  gke:
+    frontendConfig: null
+    backendConfig: null
 
 # If you enable this, please read about Kubernetes HPA Behaviors. It will change the way you look at scaling inside the cluster.
 autoscaling:
@@ -224,6 +237,8 @@ security:
   serviceAccount:
     enabled: false
     annotations: {}
+    # For GKE Workload Identity, specify the Google Cloud Service Account email.
+    gcpServiceAccount: null
     # Cluster-wide or only within namespace.
     clusterWideAccess: false
     # Resource access rules, set as many as you would need.

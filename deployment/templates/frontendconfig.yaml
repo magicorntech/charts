@@ -1,0 +1,15 @@
+{{- if eq .Values.destination "gke" }}
+{{- range .Values.ingress }}
+{{- if and .enabled .gke.frontendConfig }}
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: {{ .gke.frontendConfig }}
+  namespace: "{{ $.Release.Namespace }}"
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT
+{{- end }}
+{{- end }}
+{{- end }}

@@ -41,3 +41,12 @@ Create the name of the service account to use
 {{- default (include "charts-deployment.name" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the GKE frontend config to use
+*/}}
+{{- define "charts-deployment.gkeFrontendConfigName" -}}
+{{- if and (eq .Values.destination "gke") .Values.ingress.gke.frontendConfig }}
+{{- default (include "charts-deployment.name" .) .Values.ingress.gke.frontendConfig }}
+{{- end }}
+{{- end -}}
