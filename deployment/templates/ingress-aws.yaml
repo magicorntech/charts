@@ -19,24 +19,24 @@ metadata:
     {{- if $ingress.annotations }}
     {{- toYaml $ingress.annotations | nindent 4 }}
     {{- end }}
-    alb.ingress.kubernetes.io/certificate-arn: {{ $ingress.certificateId }}
-    alb.ingress.kubernetes.io/group.name: {{ $ingress.lbId }}
-    alb.ingress.kubernetes.io/group.order: '{{ $ingress.lbOrder }}'
+    alb.ingress.kubernetes.io/certificate-arn: {{ $ingress.aws.certificateId }}
+    alb.ingress.kubernetes.io/group.name: {{ $ingress.aws.lbId }}
+    alb.ingress.kubernetes.io/group.order: '{{ $ingress.aws.lbOrder }}'
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '{{ $root.Values.deployment.liveness.periodSeconds }}'
     alb.ingress.kubernetes.io/healthcheck-path: {{ $root.Values.deployment.liveness.httpGet.path }}
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '{{ $root.Values.deployment.liveness.timeoutSeconds }}'
     alb.ingress.kubernetes.io/healthy-threshold-count: '{{ add1 $root.Values.deployment.liveness.successThreshold }}'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds={{ $ingress.idleTimeout }}, deletion_protection.enabled=true
-    alb.ingress.kubernetes.io/scheme: {{ $ingress.scheme }}
-    alb.ingress.kubernetes.io/ssl-policy: {{ $ingress.sslPolicy }}
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds={{ $ingress.aws.idleTimeout }}, deletion_protection.enabled=true
+    alb.ingress.kubernetes.io/scheme: {{ $ingress.aws.scheme }}
+    alb.ingress.kubernetes.io/ssl-policy: {{ $ingress.aws.sslPolicy }}
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/success-codes: '200'
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds={{ $root.Values.deployment.deregistrationTime }}
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/unhealthy-threshold-count: '{{ $root.Values.deployment.liveness.failureThreshold }}'
-    {{- if $ingress.wafId }}
-    alb.ingress.kubernetes.io/wafv2-acl-arn: {{ $ingress.wafId }}
+    {{- if $ingress.aws.wafId }}
+    alb.ingress.kubernetes.io/wafv2-acl-arn: {{ $ingress.aws.wafId }}
     {{- end }}
 spec:
   ingressClassName: alb

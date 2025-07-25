@@ -1,0 +1,43 @@
+{{- if eq .Values.destination "gke" }}
+{{- $root := . }}
+{{- $ingressLength := len .Values.ingress }}
+{{- range $index, $ingress := .Values.ingress }}
+{{- if $ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "charts-deployment.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
+  namespace: "{{ $root.Release.Namespace }}"
+  labels:
+    {{- include "charts-deployment.labels" $root | nindent 4 }}
+  annotations:
+    {{- if $ingress.annotations }}
+    {{- toYaml $ingress.annotations | nindent 4 }}
+    {{- end }}
+    kubernetes.io/ingress.class: "gce"
+    {{- if $ingress.gke.frontendConfig }}
+    networking.gke.io/v1beta1.FrontendConfig: {{ include "charts-deployment.gkeFrontendConfigName" . }}
+    {{- end }}
+    {{- if $ingress.gke.backendConfig }}
+    cloud.google.com/backend-config: '{"ports": {"{{ $root.Values.service.ports.one.outer }}":"{{ $ingress.gke.backendConfig }}"}}'
+    {{- end }}
+spec:
+  rules:
+    {{- range $ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "charts-deployment.name" $root }}
+                port:
+                  number: {{ $root.Values.service.ports.one.outer }}
+          {{- end }}
+    {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}
