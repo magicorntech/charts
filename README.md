@@ -1,40 +1,89 @@
-# Charts
-Magicorn Made Helm Charts
+# Magicorn Helm Charts
 
-## Disclaimer
-Please read values-example.yaml carefully!! All the nick-nack explained there.
+A comprehensive Helm chart for deploying generic service applications on Kubernetes platforms.
 
-This is a generic Helm deployment chart that package generic service applications for your private Kubernetes platform. Works very well with AWS Elastic Kubernetes Service and AWS Application Load Balancer Ingress Controller. Additionally it supports Huawei Cloud Platform with CCE Turbo Cluster networking and datacenter (on-premise/other cloud) deployment models.
+## ⚠️ Important Notice
 
-This chart is not recommended to be used with other platforms, unless you would like to manage like a datacenter deployment.
+**Please read `values-example.yaml` carefully before deployment.** All configuration options and their explanations are documented there.
 
-Tested with EKS v1.25+ and Helm v3.10+
+## Overview
 
-## Introduction
-When you breakdown the chart values you'll notice;
+This is a versatile Helm deployment chart designed to package generic service applications for private Kubernetes platforms. It has been thoroughly tested and optimized for:
 
-* deployment
-* service
-* ingress
-* scaling
-* configmap
-* prehooks
-* cronjobs
-* security
-* pvc
+- **AWS Elastic Kubernetes Service (EKS)** with AWS Application Load Balancer Ingress Controller
+- **Huawei Cloud Platform** with CCE Turbo Cluster networking
+- **On-premise/datacenter** deployments
 
-It's divided into eight (8) different value groups for simplicity. Deployment must be filled in at bare minimum in order for this chart to do it's job. All other value groups are optional.
+### Coming Soon
+- **Google Cloud Platform (GCP)** integration with Google Kubernetes Engine (GKE) support
 
-We maintain this chart at our own [AWS ECR Gallery](https://gallery.ecr.aws/magicorn/charts-deployment):
+> **Note:** This chart is not recommended for other cloud platforms unless you plan to manage them as datacenter deployments.
 
-## Usage
-Below is a CI/CD oneliner example for a seamless deployment experience.
- 
+## Compatibility
+
+- **Kubernetes:** v1.25+
+- **Helm:** v3.10+
+
+## Chart Components
+
+The chart is organized into nine (9) distinct configuration groups for simplicity and modularity:
+
+| Component | Description | Required |
+|-----------|-------------|----------|
+| `deployment` | Core application deployment configuration | ✅ Required |
+| `service` | Service configuration for internal/external access | Optional |
+| `ingress` | Ingress controller configuration | Optional |
+| `scaling` | Horizontal Pod Autoscaler settings | Optional |
+| `configmap` | Configuration data management | Optional |
+| `prehooks` | Pre-deployment hooks and jobs | Optional |
+| `cronjobs` | Scheduled job configurations | Optional |
+| `security` | Security policies and contexts | Optional |
+| `pvc` | Persistent Volume Claims | Optional |
+
+> **Minimum requirement:** Only the `deployment` section must be configured for the chart to function.
+
+## Installation
+
+### Prerequisites
+
+- Helm 3.10+ installed
+- Kubernetes cluster access
+- Appropriate RBAC permissions
+
+### Quick Start
+
+```bash
+# Basic installation
+helm upgrade --install --create-namespace \
+  $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
+  -f values.yaml \
+  -n $APP_NAME-$ENVIRONMENT \
+  --version 0.6.0
 ```
-$ helm upgrade --install --create-namespace $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment -f .devops/apps/values-$ENVIRONMENT.yaml -n $APP_NAME-$ENVIRONMENT --set deployment.image.uri=$IMAGE_FULLURI --version 0.6.0
-```
 
-Use at your own risk, as Magicorn we don't take responsibility.
-For a little piece of mind, we only share projects that we use within our customers. You are always welcome to ask anything related about our projects, raise issues or even contribute if you'd like!
+## Configuration
 
-Thank you for your confidence and trust!
+Refer to `values-example.yaml` for comprehensive configuration examples and detailed explanations of all available options.
+
+## Chart Repository
+
+This chart is maintained and distributed through our [AWS ECR Public Gallery](https://gallery.ecr.aws/magicorn/charts-deployment).
+
+## Support & Contributing
+
+We welcome community involvement! Feel free to:
+
+- Ask questions about chart usage
+- Report issues or bugs  
+- Submit feature requests
+- Contribute improvements
+
+## License & Disclaimer
+
+**Use at your own risk.** Magicorn provides this chart as-is and assumes no responsibility for its usage. 
+
+This chart represents a project actively used within our customer deployments, ensuring real-world testing and reliability.
+
+---
+
+Thank you for your confidence and trust in Magicorn solutions!
