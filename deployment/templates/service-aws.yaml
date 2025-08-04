@@ -23,7 +23,12 @@ metadata:
   labels:
     {{- include "charts-deployment.labels" . | nindent 4 }}
 spec:
+  {{- if eq .Values.service.type "None" }}
+  type: ClusterIP
+  clusterIP: None
+  {{- else }}
   type: {{ .Values.service.type }}
+  {{- end }}
   ports:
     {{- range $key, $val := .Values.service.ports }}
     - name: {{ $key }}
