@@ -123,4 +123,7 @@ spec:
       {{- with .Values.deployment.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
+          labelSelector:
+            matchLabels:
+              {{- include "charts-deployment.selectorLabels" . | nindent 14 }}
       {{- end }}

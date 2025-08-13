@@ -76,7 +76,11 @@ deployment:
   #  eks.amazonaws.com/capacityType: ON_DEMAND
   affinity: {}
   tolerations: []
-  topologySpreadConstraints: []
+  # topologySpreadConstraints' matchLabels come automatically from the deployment.
+  topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
 
 # Cluster-wide service object details.
 # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
