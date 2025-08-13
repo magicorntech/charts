@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.6.1
+# v0.6.2
 
 # Determines which templates to use during deployment. Valid values are: aws, hcp and datacenter. (for now) 
 destination: aws
@@ -74,8 +74,9 @@ deployment:
   revisionHistory: 25
   nodeSelector: {}
   #  eks.amazonaws.com/capacityType: ON_DEMAND
-  tolerations: []
   affinity: {}
+  tolerations: []
+  topologySpreadConstraints: []
 
 # Cluster-wide service object details.
 # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
