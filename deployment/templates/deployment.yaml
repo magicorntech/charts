@@ -125,5 +125,5 @@ spec:
         {{- toYaml . | nindent 8 }}
           labelSelector:
             matchLabels:
-              {{- include "charts-deployment.selectorLabels" . | nindent 14 }}
+              {{- include "charts-deployment.selectorLabels" $ | nindent 14 }}
       {{- end }}
