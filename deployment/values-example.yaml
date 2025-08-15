@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.6.2
+# v0.6.3
 
 # Determines which templates to use during deployment. Valid values are: aws, hcp and datacenter. (for now) 
 destination: aws
@@ -114,6 +114,11 @@ ingress:
   lbId: externalloadBalancerNameHere
   # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
   lbOrder: 100
+  # TLS configuration for datacenter deployments (ignored for AWS/HCP)
+  # tls:
+  # - hosts:
+  #   - hostname.example
+  #   secretName: tls-secret-name
   hosts:
   - host: hostname.example
     paths:
@@ -130,6 +135,11 @@ ingress:
   lbId: internalloadBalancerNameHere
   # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
   lbOrder: 200
+  # TLS configuration for datacenter deployments (ignored for AWS/HCP)
+  # tls:
+  # - hosts:
+  #   - hostname.int.example
+  #   secretName: tls-secret-internal
   hosts:
   - host: hostname.int.example
     paths:

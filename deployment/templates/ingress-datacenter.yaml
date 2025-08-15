@@ -19,6 +19,16 @@ metadata:
     {{- toYaml $ingress.annotations | nindent 4 }}
 spec:
   ingressClassName: {{ $ingress.className }}
+  {{- if $ingress.tls }}
+  tls:
+    {{- range $ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
   rules:
     {{- range $ingress.hosts }}
     - host: {{ .host | quote }}
