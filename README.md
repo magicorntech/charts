@@ -12,10 +12,8 @@ This is a versatile Helm deployment chart designed to package generic service ap
 
 - **AWS Elastic Kubernetes Service (EKS)** with AWS Application Load Balancer Ingress Controller
 - **Huawei Cloud Platform** with CCE Turbo Cluster networking
+- **Google Cloud Platform (GCP)** with Google Kubernetes Engine (GKE) and Secret Manager integration
 - **On-premise/datacenter** deployments with TLS support
-
-### Coming Soon
-- **Google Cloud Platform (GCP)** integration with Google Kubernetes Engine (GKE) support
 
 > **Note:** This chart is not recommended for other cloud platforms unless you plan to manage them as datacenter deployments.
 
@@ -26,7 +24,7 @@ This is a versatile Helm deployment chart designed to package generic service ap
 
 ## Chart Components
 
-The chart is organized into nine (9) distinct configuration groups for simplicity and modularity:
+The chart is organized into ten (10) distinct configuration groups for simplicity and modularity:
 
 | Component | Description | Required |
 |-----------|-------------|----------|
@@ -39,6 +37,7 @@ The chart is organized into nine (9) distinct configuration groups for simplicit
 | `cronjobs` | Scheduled job configurations | Optional |
 | `security` | Security policies and contexts | Optional |
 | `pvc` | Persistent Volume Claims | Optional |
+| `secrets` | GCP Secret Manager integration via CSI driver | Optional |
 
 > **Minimum requirement:** Only the `deployment` section must be configured for the chart to function.
 
