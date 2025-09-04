@@ -58,7 +58,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 0.6.3
+  --version 0.7.0
 ```
 
 ## Configuration

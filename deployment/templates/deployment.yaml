@@ -32,7 +32,7 @@ spec:
       serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.security.podSecurityContext | nindent 8 }}
-      {{- if or .Values.configMap.enabled .Values.pvc.enabled }}
+      {{- if or .Values.configMap.enabled .Values.pvc.enabled (and (eq .Values.destination "gcp") .Values.secrets.enabled) }}
       volumes:
         {{- if .Values.configMap.enabled }}
         - name: app-config
@@ -47,6 +47,14 @@ spec:
         - name: storage
           persistentVolumeClaim:
             claimName: {{ include "charts-deployment.name" . }}-pvc
+        {{- end }}
+        {{- if and (eq .Values.destination "gcp") .Values.secrets.enabled }}
+        - name: gcpsecrets
+          csi:
+            driver: secrets-store-gke.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ include "charts-deployment.name" . }}
         {{- end }}
       {{- end }}
 
@@ -68,7 +76,7 @@ spec:
               protocol: TCP
             {{- end }}
           {{- end }}
-          {{- if or .Values.configMap.enabled .Values.pvc.enabled }}
+          {{- if or .Values.configMap.enabled .Values.pvc.enabled (and (eq .Values.destination "gcp") .Values.secrets.enabled) }}
           volumeMounts:
             {{- if .Values.configMap.enabled }}
             - name: app-config
@@ -81,6 +89,11 @@ spec:
               mountPath: {{ .Values.pvc.mountPath }}
               subPath: {{ .Values.pvc.subPath }}
               readOnly: false
+            {{- end }}
+            {{- if and (eq .Values.destination "gcp") .Values.secrets.enabled }}
+            - name: gcpsecrets
+              mountPath: {{ .Values.secrets.mountPath }}
+              readOnly: true
             {{- end }}
           {{- end }}
           

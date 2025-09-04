@@ -3,9 +3,9 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.6.3
+# v0.7.0
 
-# Determines which templates to use during deployment. Valid values are: aws, hcp and datacenter. (for now) 
+# Determines which templates to use during deployment. Valid values are: aws, hcp, gcp and datacenter. (for now) 
 destination: aws
 
 # Anything related to deployment object itself. Must. Fill. This!
@@ -275,3 +275,12 @@ pvc:
   accessModes:
     - ReadWriteMany
   storageClass: azurefile-csi
+
+secrets:
+  # Set true, if you would like to leverage K8s Secrets.
+  # Supports SecretProviderClass in GKE.
+  enabled: false
+  mountPath: /opt/app
+  data: |
+    - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
+      fileName: ".env"
