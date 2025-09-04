@@ -278,9 +278,9 @@ pvc:
 
 secrets:
   # Set true, if you would like to leverage K8s Secrets.
-  # Supports SecretProviderClass in GKE.
+  # Supports SecretProviderClass in GKE.
   enabled: false
   mountPath: /opt/app
-  data: |
+  data:
     - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
       fileName: ".env"
