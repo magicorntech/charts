@@ -91,9 +91,12 @@ spec:
               readOnly: false
             {{- end }}
             {{- if and (eq .Values.destination "gcp") .Values.secrets.enabled }}
+            {{- range .Values.secrets.data }}
             - name: gcpsecrets
-              mountPath: {{ .Values.secrets.mountPath }}
+              mountPath: {{ $.Values.secrets.mountPath }}/{{ .fileName }}
+              subPath: {{ .fileName }}
               readOnly: true
+            {{- end }}
             {{- end }}
           {{- end }}
           
