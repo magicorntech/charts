@@ -3,12 +3,12 @@
 apiVersion: vpcresources.k8s.aws/v1beta1
 kind: SecurityGroupPolicy
 metadata:
-  name: {{ include "charts-deployment.name" . }}
+  name: {{ include "charts-common.name" . }}
   namespace: "{{ .Release.Namespace }}"
 spec:
   serviceAccountSelector: 
     matchLabels: 
-      {{- include "charts-deployment.selectorLabels" . | nindent 6 }}
+      {{- include "charts-common.selectorLabels" . | nindent 6 }}
   securityGroups:
     groupIds: 
       - {{ .Values.security.sgPolicy.securityGroupId }}

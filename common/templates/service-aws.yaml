@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "charts-deployment.name" . }}
+  name: {{ include "charts-common.name" . }}
   namespace: "{{ .Release.Namespace }}"
   annotations:
   {{- if eq .Values.service.type "LoadBalancer"  }}
@@ -21,7 +21,7 @@ metadata:
     {{- toYaml .Values.service.annotations | nindent 4 }}
   {{- end }}
   labels:
-    {{- include "charts-deployment.labels" . | nindent 4 }}
+    {{- include "charts-common.labels" . | nindent 4 }}
 spec:
   {{- if eq .Values.service.type "None" }}
   type: ClusterIP
@@ -37,6 +37,6 @@ spec:
       protocol: TCP
     {{- end }}
   selector:
-    {{- include "charts-deployment.selectorLabels" . | nindent 4 }}
+    {{- include "charts-common.selectorLabels" . | nindent 4 }}
 {{- end }}
 {{- end }}

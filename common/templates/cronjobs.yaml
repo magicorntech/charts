@@ -4,10 +4,10 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ include "charts-deployment.name" . }}-{{ $job.name }}
+  name: {{ include "charts-common.name" . }}-{{ $job.name }}
   namespace: "{{ .Release.Namespace }}"
   labels:
-    {{- include "charts-deployment.labels" . | nindent 4 }}
+    {{- include "charts-common.labels" . | nindent 4 }}
 spec:
   schedule: {{ $job.schedule | quote }}
   concurrencyPolicy: {{ $job.concurrencyPolicy }}
@@ -18,14 +18,14 @@ spec:
       template:
         metadata:
           labels:
-            app: {{ include "charts-deployment.name" . }}-{{ $job.name }}
+            app: {{ include "charts-common.name" . }}-{{ $job.name }}
             cron: {{ $job.name }}
         spec:
           {{- with .Values.deployment.image.imagePullSecrets }}
           imagePullSecrets:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
+          serviceAccountName: {{ include "charts-common.serviceAccountName" . }}
           securityContext:
             {{- toYaml .Values.security.podSecurityContext | nindent 12 }}
           {{- if .Values.configMap.enabled }}

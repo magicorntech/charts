@@ -1,0 +1,25 @@
+1. Get the application URL by running these commands:
+{{- $root := . }}
+{{- range $ingress := .Values.ingress }}
+{{- if $ingress.enabled }}
+{{- range $host := $ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+2. You can also access your application via port-forwarding:
+  # For StatefulSet, pods are named with ordinal numbers (e.g., app-0, app-1, app-2)
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "charts-statefulset.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+
+3. StatefulSet specific commands:
+  # List all StatefulSet pods (they have predictable names)
+  kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "charts-statefulset.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+  
+  # Access specific pod by ordinal (e.g., pod-0, pod-1, etc.)
+  kubectl --namespace {{ .Release.Namespace }} port-forward {{ include "charts-statefulset.name" . }}-0 8080:80

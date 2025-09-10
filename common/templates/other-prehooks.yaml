@@ -1,14 +1,14 @@
-{{- if .Values.prehooks.dbMigrations.enabled }}
+{{- if .Values.prehooks.otherPrehooks.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "charts-deployment.name" . }}-migrations
+  name: {{ include "charts-common.name" . }}-prehooks
   namespace: "{{ .Release.Namespace }}"
   labels:
-    {{- include "charts-deployment.labels" . | nindent 4 }}
+    {{- include "charts-common.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-weight": "-2"
     "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   template:
@@ -18,13 +18,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "charts-deployment.selectorLabels" . | nindent 8 }}
+        {{- include "charts-common.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.deployment.image.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
+      serviceAccountName: {{ include "charts-common.serviceAccountName" . }}
       restartPolicy: Never
       {{- if .Values.configMap.enabled }}
       volumes:
@@ -40,11 +40,11 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.deployment.image.uri }}"
           imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
-          {{- if .Values.prehooks.dbMigrations.command }}
-          command: {{- toYaml .Values.prehooks.dbMigrations.command | nindent 12 }}
+          {{- if .Values.prehooks.otherPrehooks.command }}
+          command: {{- toYaml .Values.prehooks.otherPrehooks.command | nindent 12 }}
           {{- end }}
-          {{- if .Values.prehooks.dbMigrations.args }}
-          args: {{- toYaml .Values.prehooks.dbMigrations.args | nindent 12 }}
+          {{- if .Values.prehooks.otherPrehooks.args }}
+          args: {{- toYaml .Values.prehooks.otherPrehooks.args | nindent 12 }}
           {{- end }}
           {{- if .Values.configMap.enabled }}
           volumeMounts:

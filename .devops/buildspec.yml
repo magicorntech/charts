@@ -19,12 +19,17 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Helm package...
+      - echo Updating dependencies...
+      - helm dependency update deployment
+      - helm dependency update statefulset
       - helm package deployment
+      - helm package statefulset
       - echo Build completed.
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Pushing the Helm package...
       - helm push $PROJECT-deployment-$TAG_NUMBER.tgz oci://$REPOSITORY_URI/
+      - helm push $PROJECT-statefulset-$TAG_NUMBER.tgz oci://$REPOSITORY_URI/
       - echo Post build completed.
       - echo Build passed.

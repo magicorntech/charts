@@ -1,6 +1,6 @@
 apiVersion: v2
-name: charts-deployment
-description: A Helm chart for Kubernetes made by Magicorn
+name: charts-statefulset
+description: A Helm chart for Kubernetes StatefulSet deployments made by Magicorn
 
 # A chart can be either an 'application' or a 'library' chart.
 #

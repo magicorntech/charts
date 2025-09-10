@@ -1,9 +1,9 @@
-# Default values for Magicorn Deployment Chart.
+# Default values for Magicorn StatefulSet Chart.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v1.0.0
+# v0.8.0
 
 # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp and datacenter. (for now) 
 destination: aws
@@ -58,12 +58,6 @@ deployment:
   # If we don't like cluster autoscaler to poke around on several deployments, then we make this false.
   podAnnotations:
     cluster-autoscaler.kubernetes.io/safe-to-evict: 'true'
-  # If you want your application to die before it deploys, type: Recreate. Maybe you have a race condition or something, who knows.
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
   # We use lifecycle so that there is enough time for leftover HTTP calls to be finalized and drained thoroughly.
   lifecycle:
     preStop:
@@ -81,6 +75,16 @@ deployment:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: DoNotSchedule
+
+pvc:
+  # Each pod will get its own PVC using volumeClaimTemplates.
+  # This field is mandatory for StatefulSet deployments.
+  mountPath: /data
+  subPath: ""
+  size: 10Gi
+  # StatefulSet specific: storageClass for volumeClaimTemplates
+  # Each pod gets its own PVC with ReadWriteOnce access
+  storageClass: gp2
 
 # Cluster-wide service object details.
 # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
@@ -264,17 +268,6 @@ security:
   #  readOnlyRootFilesystem: true
   #  runAsNonRoot: true
   #  runAsUser: 1000
-
-pvc:
-  # Set true, if you want to connect a shared drive like Azure Files or EFS on your replica set.
-  # Support for stateful sets will be provided in the future.
-  enabled: false
-  mountPath: /efs/test
-  subPath: test
-  size: 100Gi
-  accessModes:
-    - ReadWriteMany
-  storageClass: azurefile-csi
 
 secrets:
   # Set true, if you would like to leverage K8s Secrets.

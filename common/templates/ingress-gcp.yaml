@@ -11,10 +11,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "charts-deployment.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
+  name: {{ include "charts-common.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
   namespace: "{{ $root.Release.Namespace }}"
   labels:
-    {{- include "charts-deployment.labels" $root | nindent 4 }}
+    {{- include "charts-common.labels" $root | nindent 4 }}
   annotations:
     {{- toYaml $ingress.annotations | nindent 4 }}
 spec:
@@ -42,11 +42,11 @@ spec:
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                name: {{ include "charts-deployment.name" $root }}
+                name: {{ include "charts-common.name" $root }}
                 port:
                   number: {{ $root.Values.service.ports.one.outer }}
               {{- else }}
-              serviceName: {{ include "charts-deployment.name" $root }}
+              serviceName: {{ include "charts-common.name" $root }}
               servicePort: {{ $root.Values.service.ports.one.outer }}
               {{- end }}
           {{- end }}

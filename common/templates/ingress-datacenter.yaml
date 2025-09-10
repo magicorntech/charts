@@ -1,4 +1,4 @@
-{{- if eq .Values.destination "hcp" }}
+{{- if eq .Values.destination "datacenter" }}
 {{- $root := . }}
 {{- $ingressLength := len .Values.ingress }}
 {{- range $index, $ingress := .Values.ingress }}
@@ -11,25 +11,24 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "charts-deployment.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
+  name: {{ include "charts-common.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
   namespace: "{{ $root.Release.Namespace }}"
   labels:
-    {{- include "charts-deployment.labels" $root | nindent 4 }}
+    {{- include "charts-common.labels" $root | nindent 4 }}
   annotations:
-    {{- if $ingress.annotations }}
     {{- toYaml $ingress.annotations | nindent 4 }}
-    {{- end }}
-    kubernetes.io/elb.class: performance
-    kubernetes.io/elb.http2-enable: 'true'
-    kubernetes.io/elb.id: {{ $ingress.lbId }}
-    kubernetes.io/elb.listener-master-ingress: {{ $root.Release.Namespace }}/{{ include "charts-deployment.name" $root }}{{ if gt $ingressLength 1 }}-{{ add1 $index }}{{ end }}
-    kubernetes.io/elb.port: '443'
-    kubernetes.io/elb.tls-certificate-ids: {{ $ingress.certificateId }}
-    kubernetes.io/elb.tls-ciphers-policy: {{ $ingress.sslPolicy }}
-    kubernetes.io/elb.ingress-order: '{{ $ingress.lbOrder }}'
-    kubernetes.io/elb.client_timeout: '{{ $ingress.idleTimeout }}'
 spec:
-  ingressClassName: cce
+  ingressClassName: {{ $ingress.className }}
+  {{- if $ingress.tls }}
+  tls:
+    {{- range $ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
   rules:
     {{- range $ingress.hosts }}
     - host: {{ .host | quote }}
@@ -43,15 +42,13 @@ spec:
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                name: {{ include "charts-deployment.name" $root }}
+                name: {{ include "charts-common.name" $root }}
                 port:
                   number: {{ $root.Values.service.ports.one.outer }}
               {{- else }}
-              serviceName: {{ include "charts-deployment.name" $root }}
+              serviceName: {{ include "charts-common.name" $root }}
               servicePort: {{ $root.Values.service.ports.one.outer }}
               {{- end }}
-            property:
-              ingress.beta.kubernetes.io/url-match-mode: STARTS_WITH
           {{- end }}
     {{- end }}
 ---
