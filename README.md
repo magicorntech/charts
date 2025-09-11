@@ -78,7 +78,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 0.7.0
+  --version 1.0.1
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -89,7 +89,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 0.7.0
+  --version 1.0.1
 ```
 
 ## Configuration
