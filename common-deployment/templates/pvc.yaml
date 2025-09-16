@@ -1,0 +1,16 @@
+{{- if .Values.global.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "charts-common-deployment.name" . }}-pvc
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "charts-common-deployment.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.global.pvc.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.global.pvc.storageClass | quote }}
+  resources:
+    requests:
+      storage: {{ required "pvc.size is required" .Values.global.pvc.size | quote }}
+{{- end }}

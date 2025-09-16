@@ -1,34 +1,34 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "charts-deployment.name" -}}
+{{- define "charts-common-deployment.name" -}}
 {{- include "charts-common.name" . }}
 {{- end }}
 
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "charts-deployment.chart" -}}
+{{- define "charts-common-deployment.chart" -}}
 {{- include "charts-common.chart" . }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "charts-deployment.labels" -}}
+{{- define "charts-common-deployment.labels" -}}
 {{- include "charts-common.labels" . }}
 {{- end }}
 
 {{/*
 Selector labels
 */}}
-{{- define "charts-deployment.selectorLabels" -}}
+{{- define "charts-common-deployment.selectorLabels" -}}
 {{- include "charts-common.selectorLabels" . }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "charts-deployment.serviceAccountName" -}}
+{{- define "charts-common-deployment.serviceAccountName" -}}
 {{- include "charts-common.serviceAccountName" . }}
 {{- end }}
