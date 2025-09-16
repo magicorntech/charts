@@ -7,7 +7,7 @@
 
 global:
   # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp and datacenter. (for now) 
-  destination: gcp
+  destination: aws
 
   # Anything related to deployment object itself. Must. Fill. This!
   deployment:

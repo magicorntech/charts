@@ -4,7 +4,9 @@ A comprehensive collection of Helm charts for deploying generic service applicat
 
 ## ⚠️ Important Notice
 
-**Please read `values-example.yaml` carefully before deployment.** All configuration options and their explanations are documented there.
+**Please read the configuration documentation carefully before deployment:**
+- Review `values.yaml` files in each chart directory for configuration examples
+- See the configuration section below for detailed explanations
 
 ## Overview
 
@@ -17,11 +19,23 @@ This repository contains versatile Helm charts designed to package generic servi
 
 ### Available Charts
 
-| Chart | Description | Use Case |
-|-------|-------------|----------|
-| `deployment` | Standard Kubernetes Deployment | Stateless applications, web services, APIs |
-| `statefulset` | Kubernetes StatefulSet | Stateful applications, databases, message queues |
-| `common` | Library chart with shared templates | Used internally by deployment and statefulset charts |
+| Chart | Type | Description | Use Case |
+|-------|------|-------------|----------|
+| `deployment` | Umbrella | Combines common + deployment workload | Deploy stateless applications |
+| `statefulset` | Umbrella | Combines common + statefulset workload | Deploy stateful applications |
+| `common` | Application | Shared templates (Service, Ingress, etc.) | Used as subchart by umbrella charts |
+| `common-deployment` | Application | Kubernetes Deployment workload | Used as subchart by deployment umbrella |
+| `common-statefulset` | Application | Kubernetes StatefulSet workload | Used as subchart by statefulset umbrella |
+
+### Chart Architecture
+
+This repository follows Helm best practices with an **umbrella chart structure**:
+
+- **Umbrella Charts**: `deployment` and `statefulset` are umbrella charts that combine multiple subcharts
+- **Shared Resources**: `common` chart contains shared templates (Service, Ingress, etc.)
+- **Workload Charts**: `common-deployment` and `common-statefulset` contain workload-specific templates
+- **Global Values**: Shared configuration using the `global:` key flows to all subcharts
+- **No Code Duplication**: Service and ingress templates exist only in the `common` chart
 
 > **Note:** These charts are not recommended for other cloud platforms unless you plan to manage them as datacenter deployments.
 
@@ -73,50 +87,74 @@ The StatefulSet chart includes additional features for stateful applications:
 #### Deployment Chart (Stateless Applications)
 
 ```bash
-# Basic installation for stateless applications
+# Deploy stateless applications (web services, APIs)
 helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 1.0.1
+  --version 1.1.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
 
 ```bash
-# Basic installation for stateful applications
+# Deploy stateful applications (databases, message queues)
+# Note: PVC configuration is MANDATORY for StatefulSets
 helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 1.0.1
+  --version 1.1.0
 ```
 
 ## Configuration
 
-Refer to `values-example.yaml` for comprehensive configuration examples and detailed explanations of all available options.
+### Global Values Structure
+
+All charts use a consistent global values structure with the following key sections:
+- `global.destination`: Target platform (aws, gcp, hcp, datacenter)
+- `global.deployment`: Application configuration (image, resources, health checks)
+- `global.service`: Service configuration (ports, type, annotations)
+- `global.ingress`: Ingress configuration (hosts, TLS, load balancer settings)
+- `global.pvc`: Persistent volume configuration (different for Deployment vs StatefulSet)
+- `global.security`: Security settings (RBAC, pod security, service accounts)
+- `global.secrets`: Secret management (GCP Secret Manager integration)
+- `global.autoscaling`: Horizontal Pod Autoscaler configuration
+- `global.cronjobs`: Scheduled job configurations
 
 ### Chart-Specific Configuration
 
-#### Deployment Chart
-- **File**: `deployment/values-example.yaml`
+#### Deployment Chart (Umbrella)
+- **File**: `deployment/values.yaml`
 - **Use Case**: Stateless applications, web services, APIs
-- **PVC**: Optional (for shared storage)
+- **PVC**: Optional (shared storage with ReadWriteMany)
+- **Dependencies**: `charts-common@0.0.1` + `charts-common-deployment@0.0.1`
+- **Renders**: Service + Ingress + Deployment + optional resources
 
-#### StatefulSet Chart  
-- **File**: `statefulset/values-example.yaml`
+#### StatefulSet Chart (Umbrella)
+- **File**: `statefulset/values.yaml`
 - **Use Case**: Stateful applications, databases, message queues
-- **PVC**: **Required** (each pod gets its own persistent volume)
+- **PVC**: **MANDATORY** (per-pod storage with ReadWriteOnce)
+- **Dependencies**: `charts-common@0.0.1` + `charts-common-statefulset@0.0.1`
+- **Renders**: Service + Ingress + StatefulSet + VolumeClaimTemplates + optional resources
+
+### Value Inheritance
+
+Charts use the following value resolution order:
+1. **Global values** (`global:` key) - shared across all charts
+2. **Chart-specific values** - override global values for specific charts
+3. **Command-line overrides** (`--set` flags) - highest priority
 
 ### Key Differences
 
 | Feature | Deployment | StatefulSet |
 |---------|------------|-------------|
-| **Pod Management** | Random pod names | Ordered pod names (app-0, app-1, app-2) |
-| **Storage** | Shared PVC (optional) | Individual PVCs (required) |
-| **Network** | Random pod IPs | Stable network identity |
-| **Updates** | Rolling update with surge | Ordered rolling updates |
+| **Pod Management** | Random pod names (app-xyz123) | Ordered pod names (app-0, app-1, app-2) |
+| **Storage** | Shared PVC (optional, ReadWriteMany) | Individual PVCs (**mandatory**, ReadWriteOnce) |
+| **Network** | Random pod IPs | Stable network identity with headless service |
+| **Updates** | Rolling update with surge | Ordered rolling updates (no surge) |
 | **Scaling** | Can scale up/down randomly | Scales in order (0→1→2, 2→1→0) |
+| **Use Case** | Web services, APIs, stateless apps | Databases, message queues, stateful apps |
 
 ## Chart Repository
 
@@ -130,20 +168,23 @@ These charts are maintained and distributed through our [AWS ECR Public Gallery]
 ### Common Issues
 
 #### StatefulSet Issues
-- **PVC not created**: Ensure `pvc` section is configured in values.yaml (required for StatefulSet)
-- **Pod stuck in Pending**: Check if storage class exists and is accessible
-- **Network issues**: Verify headless service is created (service type: ClusterIP with clusterIP: None)
+- **PVC not created**: Ensure `pvc` section is configured in values.yaml (**MANDATORY** for StatefulSet)
+- **Pod stuck in Pending**: Check if storage class exists and has sufficient capacity for per-pod PVCs
+- **Network issues**: Verify headless service is created automatically for StatefulSet
+- **Pods not starting in order**: Check if previous pod is ready before next pod starts
 
 #### Deployment Issues  
 - **Image pull errors**: Check image URI and imagePullSecrets configuration
 - **Service not accessible**: Verify service ports match container ports
 - **Ingress not working**: Check ingress configuration and controller availability
+- **Templates not rendering**: Ensure you're using umbrella charts (`deployment/` or `statefulset/`), not workload charts directly
 
 ### Getting Help
 
-- Check the `values-example.yaml` for configuration examples
-- Review Kubernetes logs: `kubectl logs -f <pod-name> -n <namespace>`
+- Review `values.yaml` files in chart directories for configuration examples
+- Check Kubernetes logs: `kubectl logs -f <pod-name> -n <namespace>`
 - Verify chart installation: `helm status <release-name> -n <namespace>`
+- Validate templates: `helm template <chart-name> --validate`
 
 ## Support & Contributing
 
