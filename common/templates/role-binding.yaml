@@ -1,16 +1,16 @@
-{{- if .Values.security.serviceAccount.enabled -}}
+{{- if .Values.global.security.serviceAccount.enabled -}}
 apiVersion: rbac.authorization.k8s.io/v1
-kind: {{ if .Values.security.serviceAccount.clusterWideAccess }}"ClusterRoleBinding"{{ else }}"RoleBinding"{{ end }}
+kind: {{ if .Values.global.security.serviceAccount.clusterWideAccess }}"ClusterRoleBinding"{{ else }}"RoleBinding"{{ end }}
 metadata:
   name: {{ include "charts-common.serviceAccountName" . }}
   labels:
     {{- include "charts-common.labels" . | nindent 4 }}
-  {{ if not .Values.security.serviceAccount.clusterWideAccess -}}
+  {{ if not .Values.global.security.serviceAccount.clusterWideAccess -}}
   namespace: {{ .Release.Namespace | quote }}
   {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: {{ if .Values.security.serviceAccount.clusterWideAccess }}"ClusterRole"{{ else }}"Role"{{ end }}
+  kind: {{ if .Values.global.security.serviceAccount.clusterWideAccess }}"ClusterRole"{{ else }}"Role"{{ end }}
   name: {{ include "charts-common.serviceAccountName" . }}
 subjects:
 - kind: ServiceAccount

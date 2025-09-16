@@ -1,7 +1,7 @@
-{{- if eq .Values.destination "aws" }}
+{{- if eq .Values.global.destination "aws" }}
 {{- $root := . }}
-{{- $ingressLength := len .Values.ingress }}
-{{- range $index, $ingress := .Values.ingress }}
+{{- $ingressLength := len .Values.global.ingress }}
+{{- range $index, $ingress := .Values.global.ingress }}
 {{- if $ingress.enabled -}}
 {{- if and $ingress.className (not (semverCompare ">=1.18-0" $root.Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey $ingress.annotations "kubernetes.io/ingress.class") }}
@@ -22,19 +22,19 @@ metadata:
     alb.ingress.kubernetes.io/certificate-arn: {{ $ingress.certificateId }}
     alb.ingress.kubernetes.io/group.name: {{ $ingress.lbId }}
     alb.ingress.kubernetes.io/group.order: '{{ $ingress.lbOrder }}'
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '{{ $root.Values.deployment.liveness.periodSeconds }}'
-    alb.ingress.kubernetes.io/healthcheck-path: {{ $root.Values.deployment.liveness.httpGet.path }}
-    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '{{ $root.Values.deployment.liveness.timeoutSeconds }}'
-    alb.ingress.kubernetes.io/healthy-threshold-count: '{{ add1 $root.Values.deployment.liveness.successThreshold }}'
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '{{ $root.Values.global.deployment.liveness.periodSeconds }}'
+    alb.ingress.kubernetes.io/healthcheck-path: {{ $root.Values.global.deployment.liveness.httpGet.path }}
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '{{ $root.Values.global.deployment.liveness.timeoutSeconds }}'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '{{ add1 $root.Values.global.deployment.liveness.successThreshold }}'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds={{ $ingress.idleTimeout }}, deletion_protection.enabled=true
     alb.ingress.kubernetes.io/scheme: {{ $ingress.scheme }}
     alb.ingress.kubernetes.io/ssl-policy: {{ $ingress.sslPolicy }}
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/success-codes: '200'
-    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds={{ $root.Values.deployment.deregistrationTime }}
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds={{ $root.Values.global.deployment.deregistrationTime }}
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/unhealthy-threshold-count: '{{ $root.Values.deployment.liveness.failureThreshold }}'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '{{ $root.Values.global.deployment.liveness.failureThreshold }}'
     {{- if $ingress.wafId }}
     alb.ingress.kubernetes.io/wafv2-acl-arn: {{ $ingress.wafId }}
     {{- end }}
@@ -55,10 +55,10 @@ spec:
               service:
                 name: {{ include "charts-common.name" $root }}
                 port:
-                  number: {{ $root.Values.service.ports.one.outer }}
+                  number: {{ $root.Values.global.service.ports.one.outer }}
               {{- else }}
               serviceName: {{ include "charts-common.name" $root }}
-              servicePort: {{ $root.Values.service.ports.one.outer }}
+              servicePort: {{ $root.Values.global.service.ports.one.outer }}
               {{- end }}
           {{- end }}
     {{- end }}

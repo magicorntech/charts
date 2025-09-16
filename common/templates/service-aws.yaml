@@ -1,36 +1,36 @@
-{{- if eq .Values.destination "aws" }}
-{{- if .Values.service.enabled }}
+{{- if eq .Values.global.destination "aws" }}
+{{- if .Values.global.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "charts-common.name" . }}
   namespace: "{{ .Release.Namespace }}"
   annotations:
-  {{- if eq .Values.service.type "LoadBalancer"  }}
+  {{- if eq .Values.global.service.type "LoadBalancer"  }}
     service.beta.kubernetes.io/aws-load-balancer-type: external
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: '{{ add1 .Values.deployment.liveness.successThreshold }}'
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: '{{ .Values.deployment.liveness.failureThreshold }}'
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: '{{ .Values.deployment.liveness.timeoutSeconds }}'
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: '{{ .Values.deployment.liveness.periodSeconds }}'
-    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: deregistration_delay.timeout_seconds={{ .Values.deployment.deregistrationTime }}, deregistration_delay.connection_termination.enabled=true, preserve_client_ip.enabled=true
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: '{{ add1 .Values.global.deployment.liveness.successThreshold }}'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: '{{ .Values.global.deployment.liveness.failureThreshold }}'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: '{{ .Values.global.deployment.liveness.timeoutSeconds }}'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: '{{ .Values.global.deployment.liveness.periodSeconds }}'
+    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: deregistration_delay.timeout_seconds={{ .Values.global.deployment.deregistrationTime }}, deregistration_delay.connection_termination.enabled=true, preserve_client_ip.enabled=true
     service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zone.enabled=false, deletion_protection.enabled=true
-    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- toYaml .Values.global.service.annotations | nindent 4 }}
   {{- else }}
-    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- toYaml .Values.global.service.annotations | nindent 4 }}
   {{- end }}
   labels:
     {{- include "charts-common.labels" . | nindent 4 }}
 spec:
-  {{- if eq .Values.service.type "None" }}
+  {{- if eq .Values.global.service.type "None" }}
   type: ClusterIP
   clusterIP: None
   {{- else }}
-  type: {{ .Values.service.type }}
+  type: {{ .Values.global.service.type }}
   {{- end }}
   ports:
-    {{- range $key, $val := .Values.service.ports }}
+    {{- range $key, $val := .Values.global.service.ports }}
     - name: {{ $key }}
       targetPort: {{ $val.inner }}
       port: {{ $val.outer }}

@@ -1,5 +1,5 @@
-{{- if eq .Values.destination "aws" }}
-{{- if .Values.security.sgPolicy.enabled }}
+{{- if eq .Values.global.destination "aws" }}
+{{- if .Values.global.security.sgPolicy.enabled }}
 apiVersion: vpcresources.k8s.aws/v1beta1
 kind: SecurityGroupPolicy
 metadata:
@@ -11,6 +11,6 @@ spec:
       {{- include "charts-common.selectorLabels" . | nindent 6 }}
   securityGroups:
     groupIds: 
-      - {{ .Values.security.sgPolicy.securityGroupId }}
+      - {{ .Values.global.security.sgPolicy.securityGroupId }}
 {{- end }}
 {{- end }}

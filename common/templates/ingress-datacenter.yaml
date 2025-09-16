@@ -1,7 +1,7 @@
-{{- if eq .Values.destination "datacenter" }}
+{{- if eq .Values.global.destination "datacenter" }}
 {{- $root := . }}
-{{- $ingressLength := len .Values.ingress }}
-{{- range $index, $ingress := .Values.ingress }}
+{{- $ingressLength := len .Values.global.ingress }}
+{{- range $index, $ingress := .Values.global.ingress }}
 {{- if $ingress.enabled -}}
 {{- if and $ingress.className (not (semverCompare ">=1.18-0" $root.Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey $ingress.annotations "kubernetes.io/ingress.class") }}
@@ -44,10 +44,10 @@ spec:
               service:
                 name: {{ include "charts-common.name" $root }}
                 port:
-                  number: {{ $root.Values.service.ports.one.outer }}
+                  number: {{ $root.Values.global.service.ports.one.outer }}
               {{- else }}
               serviceName: {{ include "charts-common.name" $root }}
-              servicePort: {{ $root.Values.service.ports.one.outer }}
+              servicePort: {{ $root.Values.global.service.ports.one.outer }}
               {{- end }}
           {{- end }}
     {{- end }}

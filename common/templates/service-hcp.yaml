@@ -1,23 +1,23 @@
-{{- if eq .Values.destination "hcp" }}
-{{- if .Values.service.enabled }}
+{{- if eq .Values.global.destination "hcp" }}
+{{- if .Values.global.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "charts-common.name" . }}
   namespace: "{{ .Release.Namespace }}"
   annotations:
-    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- toYaml .Values.global.service.annotations | nindent 4 }}
   labels:
     {{- include "charts-common.labels" . | nindent 4 }}
 spec:
-  {{- if eq .Values.service.type "None" }}
+  {{- if eq .Values.global.service.type "None" }}
   type: ClusterIP
   clusterIP: None
   {{- else }}
-  type: {{ .Values.service.type }}
+  type: {{ .Values.global.service.type }}
   {{- end }}
   ports:
-    {{- range $key, $val := .Values.service.ports }}
+    {{- range $key, $val := .Values.global.service.ports }}
     - name: {{ $key }}
       targetPort: {{ $val.inner }}
       port: {{ $val.outer }}

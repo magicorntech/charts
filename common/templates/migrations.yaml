@@ -1,4 +1,4 @@
-{{- if .Values.prehooks.dbMigrations.enabled }}
+{{- if .Values.global.prehooks.dbMigrations.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -13,31 +13,31 @@ metadata:
 spec:
   template:
     metadata:
-      {{- with .Values.deployment.podAnnotations }}
+      {{- with .Values.global.deployment.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "charts-common.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.deployment.image.imagePullSecrets }}
+      {{- with .Values.global.deployment.image.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "charts-common.serviceAccountName" . }}
       restartPolicy: Never
-      {{- if or .Values.configMap.enabled (and (eq .Values.destination "gcp") .Values.secrets.enabled) }}
+      {{- if or .Values.global.configMap.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
       volumes:
-        {{- if .Values.configMap.enabled }}
+        {{- if .Values.global.configMap.enabled }}
         - name: app-config
           configMap:
-            name: {{ .Values.configMap.name }}
+            name: {{ .Values.global.configMap.name }}
             items:
-              - key: {{ .Values.configMap.fileName }}
-                path: {{ .Values.configMap.fileName }}
+              - key: {{ .Values.global.configMap.fileName }}
+                path: {{ .Values.global.configMap.fileName }}
             defaultMode: 420
         {{- end }}
-        {{- if and (eq .Values.destination "gcp") .Values.secrets.enabled }}
+        {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
         - name: gcpsecrets
           csi:
             driver: secrets-store-gke.csi.k8s.io
@@ -48,33 +48,33 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.deployment.image.uri }}"
-          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
-          {{- if .Values.prehooks.dbMigrations.command }}
-          command: {{- toYaml .Values.prehooks.dbMigrations.command | nindent 12 }}
+          image: "{{ .Values.global.deployment.image.uri }}"
+          imagePullPolicy: {{ .Values.global.deployment.image.pullPolicy }}
+          {{- if .Values.global.prehooks.dbMigrations.command }}
+          command: {{- toYaml .Values.global.prehooks.dbMigrations.command | nindent 12 }}
           {{- end }}
-          {{- if .Values.prehooks.dbMigrations.args }}
-          args: {{- toYaml .Values.prehooks.dbMigrations.args | nindent 12 }}
+          {{- if .Values.global.prehooks.dbMigrations.args }}
+          args: {{- toYaml .Values.global.prehooks.dbMigrations.args | nindent 12 }}
           {{- end }}
-          {{- if or .Values.configMap.enabled (and (eq .Values.destination "gcp") .Values.secrets.enabled) }}
+          {{- if or .Values.global.configMap.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
           volumeMounts:
-            {{- if .Values.configMap.enabled }}
+            {{- if .Values.global.configMap.enabled }}
             - name: app-config
               readOnly: true
-              mountPath: {{ .Values.configMap.mountPath }}
-              subPath: {{ .Values.configMap.fileName }}
+              mountPath: {{ .Values.global.configMap.mountPath }}
+              subPath: {{ .Values.global.configMap.fileName }}
             {{- end }}
-            {{- if and (eq .Values.destination "gcp") .Values.secrets.enabled }}
-            {{- range .Values.secrets.data }}
+            {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
+            {{- range .Values.global.secrets.data }}
             - name: gcpsecrets
-              mountPath: {{ $.Values.secrets.mountPath }}/{{ .fileName }}
+              mountPath: {{ $.Values.global.secrets.mountPath }}/{{ .fileName }}
               subPath: {{ .fileName }}
               readOnly: true
             {{- end }}
             {{- end }}
           {{- end }}
           env:
-            {{- toYaml .Values.deployment.env | nindent 12 }}
+            {{- toYaml .Values.global.deployment.env | nindent 12 }}
           resources:
-            {{- toYaml .Values.deployment.resources | nindent 12 }}
+            {{- toYaml .Values.global.deployment.resources | nindent 12 }}
 {{- end }}
