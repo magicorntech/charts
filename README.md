@@ -5,7 +5,7 @@ A comprehensive collection of Helm charts for deploying generic service applicat
 ## ⚠️ Important Notice
 
 **Please read the configuration documentation carefully before deployment:**
-- Review `values.yaml` files in each chart directory for configuration examples
+- Review `values-example.yaml` files in each chart directory for configuration examples
 - See the configuration section below for detailed explanations
 
 ## Overview
@@ -90,7 +90,7 @@ The StatefulSet chart includes additional features for stateful applications:
 # Deploy stateless applications (web services, APIs)
 helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
-  -f values.yaml \
+  -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
   --version 1.1.0
 ```
@@ -102,7 +102,7 @@ helm upgrade --install --create-namespace \
 # Note: PVC configuration is MANDATORY for StatefulSets
 helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
-  -f values.yaml \
+  -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
   --version 1.1.0
 ```
@@ -125,14 +125,14 @@ All charts use a consistent global values structure with the following key secti
 ### Chart-Specific Configuration
 
 #### Deployment Chart (Umbrella)
-- **File**: `deployment/values.yaml`
+- **File**: `deployment/values-example.yaml`
 - **Use Case**: Stateless applications, web services, APIs
 - **PVC**: Optional (shared storage with ReadWriteMany)
 - **Dependencies**: `charts-common@0.0.1` + `charts-common-deployment@0.0.1`
 - **Renders**: Service + Ingress + Deployment + optional resources
 
 #### StatefulSet Chart (Umbrella)
-- **File**: `statefulset/values.yaml`
+- **File**: `statefulset/values-example.yaml`
 - **Use Case**: Stateful applications, databases, message queues
 - **PVC**: **MANDATORY** (per-pod storage with ReadWriteOnce)
 - **Dependencies**: `charts-common@0.0.1` + `charts-common-statefulset@0.0.1`
@@ -168,7 +168,7 @@ These charts are maintained and distributed through our [AWS ECR Public Gallery]
 ### Common Issues
 
 #### StatefulSet Issues
-- **PVC not created**: Ensure `pvc` section is configured in values.yaml (**MANDATORY** for StatefulSet)
+- **PVC not created**: Ensure `pvc` section is configured in values-example.yaml (**MANDATORY** for StatefulSet)
 - **Pod stuck in Pending**: Check if storage class exists and has sufficient capacity for per-pod PVCs
 - **Network issues**: Verify headless service is created automatically for StatefulSet
 - **Pods not starting in order**: Check if previous pod is ready before next pod starts
@@ -181,7 +181,7 @@ These charts are maintained and distributed through our [AWS ECR Public Gallery]
 
 ### Getting Help
 
-- Review `values.yaml` files in chart directories for configuration examples
+- Review `values-example.yaml` files in chart directories for configuration examples
 - Check Kubernetes logs: `kubectl logs -f <pod-name> -n <namespace>`
 - Verify chart installation: `helm status <release-name> -n <namespace>`
 - Validate templates: `helm template <chart-name> --validate`
