@@ -19,7 +19,7 @@ global:
       #  - /usr/bin/supervisord
       #args:
       #  - '-c'
-      #  - 'supervisor.conf'
+      #  - 'supervisord.conf'
     env:
     - name: foo
       value: bar
