@@ -279,8 +279,11 @@ pvc:
 secrets:
   # Set true, if you would like to leverage K8s Secrets.
   # Supports SecretProviderClass in GKE.
+  # Secrets from GCP Secret Manager will be injected as environment variables into the pod.
   enabled: false
-  mountPath: /opt/app
   data:
     - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
-      fileName: ".env"
+      envKey: "MY_SECRET_KEY"
+    # Add more secrets as needed:
+    # - resourceName: "projects/<project_id>/secrets/<another_secret>/versions/latest"
+    #   envKey: "ANOTHER_SECRET_KEY"
