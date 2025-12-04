@@ -277,14 +277,14 @@ pvc:
   storageClass: azurefile-csi
 
 secrets:
-  # Set true, if you would like to leverage K8s Secrets.
-  # Supports SecretProviderClass in GKE with JSON format secrets.
-  # GCP Secret must be in JSON format: {"KEY1": "value1", "KEY2": "value2"}
-  # All keys will be injected as environment variables into the pod.
+  # Set true to inject environment variables from a shared Kubernetes Secret.
+  # The secret must be created beforehand in the same namespace (common across all services).
+  # Only the keys specified below will be injected into this deployment.
   enabled: false
-  # GCP Secret Manager resource name
-  resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
-  # List of keys to extract from the JSON secret
+  # Name of the shared Kubernetes Secret (e.g., "stonki-common-secrets")
+  secretName: "stonki-common-secrets"
+  # List of keys to extract from the shared secret
   keys:
-    - ENV_VAR_1
-    - ENV_VAR_2
+    - NEXT_PUBLIC_SITE_URL
+    - DATABASE_URI
+    - API_KEY
