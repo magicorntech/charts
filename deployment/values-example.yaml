@@ -278,12 +278,13 @@ pvc:
 
 secrets:
   # Set true, if you would like to leverage K8s Secrets.
-  # Supports SecretProviderClass in GKE.
-  # Secrets from GCP Secret Manager will be injected as environment variables into the pod.
+  # Supports SecretProviderClass in GKE with JSON format secrets.
+  # GCP Secret must be in JSON format: {"KEY1": "value1", "KEY2": "value2"}
+  # All keys will be injected as environment variables into the pod.
   enabled: false
-  data:
-    - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
-      envKey: "MY_SECRET_KEY"
-    # Add more secrets as needed:
-    # - resourceName: "projects/<project_id>/secrets/<another_secret>/versions/latest"
-    #   envKey: "ANOTHER_SECRET_KEY"
+  # GCP Secret Manager resource name
+  resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
+  # List of keys to extract from the JSON secret
+  keys:
+    - ENV_VAR_1
+    - ENV_VAR_2

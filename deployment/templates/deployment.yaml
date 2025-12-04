@@ -108,12 +108,12 @@ spec:
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}
             {{- if and (eq .Values.destination "gcp") .Values.secrets.enabled }}
-            {{- range .Values.secrets.data }}
-            - name: {{ .envKey }}
+            {{- range .Values.secrets.keys }}
+            - name: {{ . }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "charts-deployment.name" $ }}-gcp-secrets
-                  key: {{ .envKey }}
+                  key: {{ . }}
             {{- end }}
             {{- end }}
           resources:
