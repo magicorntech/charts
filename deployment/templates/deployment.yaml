@@ -94,13 +94,22 @@ spec:
           {{- end }}
           env:
             {{- toYaml .Values.deployment.env | nindent 12 }}
-            {{- if .Values.secrets.enabled }}
-            {{- range .Values.secrets.keys }}
-            - name: {{ . }}
+            {{- if .Values.secrets.common.enabled }}
+            {{- range .Values.secrets.common.keys }}
+            - name: {{ .envName }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ $.Values.secrets.secretName }}
-                  key: {{ . }}
+                  name: {{ $.Values.secrets.common.secretName }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.secrets.service.enabled }}
+            {{- range .Values.secrets.service.keys }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secrets.service.secretName }}
+                  key: {{ .key }}
             {{- end }}
             {{- end }}
           resources:
