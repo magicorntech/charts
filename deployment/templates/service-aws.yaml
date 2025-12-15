@@ -1,5 +1,12 @@
 {{- if eq .Values.destination "aws" }}
 {{- if .Values.service.enabled }}
+{{- $skipMainService := false }}
+{{- if .Values.rollout.enabled }}
+  {{- if or (eq .Values.rollout.strategyType "blueGreen") .Values.rollout.canary.createCanaryService }}
+    {{- $skipMainService = true }}
+  {{- end }}
+{{- end }}
+{{- if not $skipMainService }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -38,5 +45,6 @@ spec:
     {{- end }}
   selector:
     {{- include "charts-deployment.selectorLabels" . | nindent 4 }}
+{{- end }}
 {{- end }}
 {{- end }}

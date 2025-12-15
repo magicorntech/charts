@@ -1,0 +1,104 @@
+{{- if .Values.rollout.enabled }}
+{{- if eq .Values.rollout.strategyType "canary" }}
+{{- if .Values.rollout.canary.createCanaryService }}
+---
+# Stable Service for Canary Strategy
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.rollout.canary.stableServiceName | default (printf "%s-stable" (include "charts-deployment.name" .)) }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range $key, $val := .Values.service.ports }}
+    - port: {{ $val.outer }}
+      targetPort: {{ $key }}
+      protocol: TCP
+      name: {{ $key }}
+    {{- end }}
+  selector:
+    {{- include "charts-deployment.selectorLabels" . | nindent 4 }}
+---
+# Canary Service for Canary Strategy
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.rollout.canary.canaryServiceName | default (printf "%s-canary" (include "charts-deployment.name" .)) }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range $key, $val := .Values.service.ports }}
+    - port: {{ $val.outer }}
+      targetPort: {{ $key }}
+      protocol: TCP
+      name: {{ $key }}
+    {{- end }}
+  selector:
+    {{- include "charts-deployment.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- else if eq .Values.rollout.strategyType "blueGreen" }}
+---
+# Active Service for Blue-Green Strategy
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.rollout.blueGreen.activeService | default (printf "%s-active" (include "charts-deployment.name" .)) }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range $key, $val := .Values.service.ports }}
+    - port: {{ $val.outer }}
+      targetPort: {{ $key }}
+      protocol: TCP
+      name: {{ $key }}
+    {{- end }}
+  selector:
+    {{- include "charts-deployment.selectorLabels" . | nindent 4 }}
+---
+# Preview Service for Blue-Green Strategy
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.rollout.blueGreen.previewService | default (printf "%s-preview" (include "charts-deployment.name" .)) }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "charts-deployment.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    {{- range $key, $val := .Values.service.ports }}
+    - port: {{ $val.outer }}
+      targetPort: {{ $key }}
+      protocol: TCP
+      name: {{ $key }}
+    {{- end }}
+  selector:
+    {{- include "charts-deployment.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}
+

@@ -3,13 +3,15 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.7.0
+# v0.7.5
 
 # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp and datacenter. (for now) 
 destination: aws
 
 # Anything related to deployment object itself. Must. Fill. This!
 deployment:
+  # Set false if you want to use Argo Rollouts instead of standard Kubernetes Deployment
+  enabled: true
   image:
     uri: __INSERTURIHERE__
     pullPolicy: IfNotPresent
@@ -82,6 +84,60 @@ deployment:
     topologyKey: kubernetes.io/hostname
     whenUnsatisfiable: DoNotSchedule
 
+# Argo Rollouts configuration. If enabled, standard deployment will be ignored.
+# Either deployment.enabled OR rollout.enabled should be true, not both.
+rollout:
+  enabled: false
+  # Strategy type: "canary" or "blueGreen"
+  strategyType: canary
+  # Canary strategy configuration
+  canary:
+    maxSurge: 1
+    maxUnavailable: 0
+    # Canary will use the main service by default. For traffic splitting (Istio/ALB/Nginx), set true to create stable/canary services.
+    createCanaryService: true
+    # Service name for stable traffic (leave empty to auto-generate: <release-name>-stable)
+    stableServiceName: ""
+    # Service name for canary traffic (leave empty to auto-generate: <release-name>-canary)
+    canaryServiceName: ""
+    steps:
+    - setWeight: 20
+    - pause: {duration: 5m}
+    - setWeight: 40
+    - pause: {duration: 5m}
+    - setWeight: 60
+    - pause: {duration: 5m}
+    - setWeight: 80
+    - pause: {duration: 5m}
+    # Traffic routing for advanced integrations (Istio, ALB, Nginx, etc.)
+    trafficRouting:
+      enabled: false
+      # Type: istio, alb, nginx, smi, ambassador, etc.
+      type: alb
+    # Analysis template for automated rollback (optional)
+    analysis:
+      enabled: false
+      templateName: ""
+      args: []
+  # Blue-Green strategy configuration
+  blueGreen:
+    # Chart will auto-create active and preview services with suffix -active and -preview
+    # Service name for active (production) traffic (leave empty to auto-generate: <release-name>-active)
+    activeService: ""
+    # Service name for preview (test) traffic (leave empty to auto-generate: <release-name>-preview)
+    previewService: ""
+    autoPromotionEnabled: true
+    autoPromotionSeconds: 30
+    scaleDownDelaySeconds: 30
+    previewReplicaCount: 1
+    # Analysis template for automated rollback (optional)
+    analysis:
+      enabled: false
+      templateName: ""
+      args: []
+  # Rollout revisionHistory, same as deployment
+  revisionHistory: 25
+
 # Cluster-wide service object details.
 # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
 service:
@@ -102,10 +158,17 @@ service:
 
 # External access to the service object above but you can't only receive external traffic, you must also enable your application for internal traffic as well.
 # By default, ingress traffic is forwarded to "outer" service port of "one".
+# If rollout is enabled, you can specify "rolloutService" to target specific rollout services:
+#   - For Canary: "stable" or "canary"
+#   - For Blue-Green: "active" or "preview"
+#   - Leave empty or omit for normal deployment service
 ingress:
 - enabled: true
   annotations: {} # You can add additional annotations if you'd like.
   className: null # Ignored if "destination == aws || destination == hcp".
+  # Rollout service target (only used if rollout.enabled is true)
+  # For Canary: "stable" or "canary" | For Blue-Green: "active" or "preview" | Leave empty for normal deployment
+  rolloutService: "" # Example: "stable", "canary", "active", "preview"
   idleTimeout: 60
   scheme: internet-facing # or "internal".
   certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
@@ -127,6 +190,8 @@ ingress:
 - enabled: false
   annotations: {} # You can add additional annotations if you'd like.
   className: null # Ignored if "destination == aws || destination == hcp".
+  # Rollout service target (only used if rollout.enabled is true)
+  rolloutService: "" # Example: "stable", "canary", "active", "preview"
   idleTimeout: 60
   scheme: internal # or "internal".
   certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00

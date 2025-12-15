@@ -1,6 +1,6 @@
-{{- if .Values.deployment.enabled }}
-apiVersion: apps/v1
-kind: Deployment
+{{- if .Values.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "charts-deployment.name" . }}
   namespace: "{{ .Release.Namespace }}"
@@ -11,9 +11,7 @@ spec:
   replicas: {{ .Values.deployment.replicaCount }}
   {{- end }}
   progressDeadlineSeconds: {{ .Values.deployment.failSeconds }}
-  revisionHistoryLimit: {{ .Values.deployment.revisionHistory }}
-  strategy:
-    {{- toYaml .Values.deployment.strategy | nindent 4 }}
+  revisionHistoryLimit: {{ .Values.rollout.revisionHistory }}
   selector:
     matchLabels:
       {{- include "charts-deployment.selectorLabels" . | nindent 6 }}
@@ -144,4 +142,72 @@ spec:
             matchLabels:
               {{- include "charts-deployment.selectorLabels" $ | nindent 14 }}
       {{- end }}
+  strategy:
+    {{- if eq .Values.rollout.strategyType "canary" }}
+    canary:
+      {{- if .Values.rollout.canary.createCanaryService }}
+      stableService: {{ .Values.rollout.canary.stableServiceName | default (printf "%s-stable" (include "charts-deployment.name" .)) }}
+      canaryService: {{ .Values.rollout.canary.canaryServiceName | default (printf "%s-canary" (include "charts-deployment.name" .)) }}
+      {{- end }}
+      {{- if .Values.rollout.canary.maxSurge }}
+      maxSurge: {{ .Values.rollout.canary.maxSurge }}
+      {{- end }}
+      {{- if .Values.rollout.canary.maxUnavailable }}
+      maxUnavailable: {{ .Values.rollout.canary.maxUnavailable }}
+      {{- end }}
+      {{- if .Values.rollout.canary.steps }}
+      steps:
+        {{- toYaml .Values.rollout.canary.steps | nindent 8 }}
+      {{- end }}
+      {{- if .Values.rollout.canary.trafficRouting.enabled }}
+      trafficRouting:
+        {{- if eq .Values.rollout.canary.trafficRouting.type "alb" }}
+        alb:
+          ingress: {{ include "charts-deployment.name" . }}
+          servicePort: {{ (index .Values.service.ports "one").outer }}
+        {{- else if eq .Values.rollout.canary.trafficRouting.type "istio" }}
+        istio:
+          virtualService:
+            name: {{ include "charts-deployment.name" . }}
+        {{- else if eq .Values.rollout.canary.trafficRouting.type "nginx" }}
+        nginx:
+          stableIngress: {{ include "charts-deployment.name" . }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.rollout.canary.analysis.enabled }}
+      analysis:
+        templates:
+        - templateName: {{ .Values.rollout.canary.analysis.templateName }}
+        {{- if .Values.rollout.canary.analysis.args }}
+        args:
+          {{- toYaml .Values.rollout.canary.analysis.args | nindent 10 }}
+        {{- end }}
+      {{- end }}
+    {{- else if eq .Values.rollout.strategyType "blueGreen" }}
+    blueGreen:
+      activeService: {{ .Values.rollout.blueGreen.activeService | default (printf "%s-active" (include "charts-deployment.name" .)) }}
+      {{- if or .Values.rollout.blueGreen.previewService (not .Values.rollout.blueGreen.previewService) }}
+      previewService: {{ .Values.rollout.blueGreen.previewService | default (printf "%s-preview" (include "charts-deployment.name" .)) }}
+      {{- end }}
+      autoPromotionEnabled: {{ .Values.rollout.blueGreen.autoPromotionEnabled }}
+      {{- if .Values.rollout.blueGreen.autoPromotionSeconds }}
+      autoPromotionSeconds: {{ .Values.rollout.blueGreen.autoPromotionSeconds }}
+      {{- end }}
+      {{- if .Values.rollout.blueGreen.scaleDownDelaySeconds }}
+      scaleDownDelaySeconds: {{ .Values.rollout.blueGreen.scaleDownDelaySeconds }}
+      {{- end }}
+      {{- if .Values.rollout.blueGreen.previewReplicaCount }}
+      previewReplicaCount: {{ .Values.rollout.blueGreen.previewReplicaCount }}
+      {{- end }}
+      {{- if .Values.rollout.blueGreen.analysis.enabled }}
+      prePromotionAnalysis:
+        templates:
+        - templateName: {{ .Values.rollout.blueGreen.analysis.templateName }}
+        {{- if .Values.rollout.blueGreen.analysis.args }}
+        args:
+          {{- toYaml .Values.rollout.blueGreen.analysis.args | nindent 10 }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
 {{- end }}
+
