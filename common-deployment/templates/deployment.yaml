@@ -32,7 +32,7 @@ spec:
       serviceAccountName: {{ include "charts-common-deployment.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.global.security.podSecurityContext | nindent 8 }}
-      {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
+      {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.gcp.enabled) }}
       volumes:
         {{- if .Values.global.configMap.enabled }}
         - name: app-config
@@ -48,7 +48,7 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "charts-common-deployment.name" . }}-pvc
         {{- end }}
-        {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
+        {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.gcp.enabled }}
         - name: gcpsecrets
           csi:
             driver: secrets-store-gke.csi.k8s.io
@@ -76,7 +76,7 @@ spec:
               protocol: TCP
             {{- end }}
           {{- end }}
-          {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
+          {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.gcp.enabled) }}
           volumeMounts:
             {{- if .Values.global.configMap.enabled }}
             - name: app-config
@@ -90,10 +90,10 @@ spec:
               subPath: {{ .Values.global.pvc.subPath }}
               readOnly: false
             {{- end }}
-            {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
-            {{- range .Values.global.secrets.data }}
+            {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.gcp.enabled }}
+            {{- range .Values.global.secrets.gcp.data }}
             - name: gcpsecrets
-              mountPath: {{ $.Values.global.secrets.mountPath }}/{{ .fileName }}
+              mountPath: {{ $.Values.global.secrets.gcp.mountPath }}/{{ .fileName }}
               subPath: {{ .fileName }}
               readOnly: true
             {{- end }}
@@ -110,6 +110,24 @@ spec:
           {{- end }}
           env:
             {{- toYaml .Values.global.deployment.env | nindent 12 }}
+            {{- if .Values.global.k8sSecrets.common.enabled }}
+            {{- range .Values.global.k8sSecrets.common.keys }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.global.k8sSecrets.common.secretName }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.global.k8sSecrets.service.enabled }}
+            {{- range .Values.global.k8sSecrets.service.keys }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.global.k8sSecrets.service.secretName }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- end }}
           resources:
             {{- toYaml .Values.global.deployment.resources | nindent 12 }}
           {{- if .Values.global.deployment.lifecycle }}

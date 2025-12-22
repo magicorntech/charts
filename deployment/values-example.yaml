@@ -278,10 +278,59 @@ global:
     storageClass: azurefile-csi
 
   secrets:
-    # Set true, if you would like to leverage K8s Secrets.
-    # Supports SecretProviderClass in GKE.
-    enabled: false
-    mountPath: /opt/app
-    data:
-      - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
-        fileName: ".env"
+    # GCP Secret Manager integration (for GKE clusters)
+    # Mounts secrets from Google Cloud Secret Manager as files into containers
+    gcp:
+      # Set true, if you would like to leverage GCP Secret Manager via SecretProviderClass.
+      # Only works when destination is "gcp" (GKE cluster).
+      enabled: false
+      # Mount path in the container where secret files will be mounted
+      mountPath: /app
+      # List of secrets to mount from GCP Secret Manager
+      # Each item has:
+      #   resourceName: Full GCP Secret Manager resource path (e.g., "projects/PROJECT_ID/secrets/SECRET_NAME/versions/latest")
+      #   fileName: The filename in the mount path
+      data:
+        - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
+          fileName: ".env.common"
+        - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
+          fileName: ".env.service"
+        - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
+          fileName: "key.json"
+
+  # Kubernetes Secrets support (common and service-specific)
+  k8sSecrets:
+    # Common secrets shared across all services
+    common:
+      # Set true to inject environment variables from a shared Kubernetes Secret.
+      # The secret must be created beforehand in the same namespace (common across all services).
+      enabled: false
+      # Name of the shared Kubernetes Secret (e.g., "stonki-common-secrets")
+      secretName: "stonki-common-secrets"
+      # List of keys to extract from the shared secret
+      # Each item has:
+      #   key: The key name in the Kubernetes Secret
+      #   envName: The environment variable name in the pod (can be different from key)
+      keys:
+        - key: POSTHOG_API_KEY
+          envName: posthog_api_key
+        - key: DATABASE_URI
+          envName: DATABASE_URI
+        - key: API_KEY
+          envName: API_KEY
+    # Service-specific secrets (unique to this deployment)
+    service:
+      # Set true to inject environment variables from a service-specific Kubernetes Secret.
+      # The secret must be created beforehand in the same namespace.
+      enabled: false
+      # Name of the service-specific Kubernetes Secret
+      secretName: "service-specific-secrets"
+      # List of keys to extract from the service secret
+      # Each item has:
+      #   key: The key name in the Kubernetes Secret
+      #   envName: The environment variable name in the pod (can be different from key)
+      keys:
+        - key: SERVICE_API_KEY
+          envName: service_api_key
+        - key: SERVICE_SECRET
+          envName: SERVICE_SECRET
