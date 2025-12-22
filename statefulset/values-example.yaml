@@ -278,3 +278,40 @@ global:
     data:
       - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
         fileName: ".env"
+
+  # Kubernetes Secrets support (common and service-specific)
+  k8sSecrets:
+    # Common secrets shared across all services
+    common:
+      # Set true to inject environment variables from a shared Kubernetes Secret.
+      # The secret must be created beforehand in the same namespace (common across all services).
+      enabled: false
+      # Name of the shared Kubernetes Secret (e.g., "stonki-common-secrets")
+      secretName: "stonki-common-secrets"
+      # List of keys to extract from the shared secret
+      # Each item has:
+      #   key: The key name in the Kubernetes Secret
+      #   envName: The environment variable name in the pod (can be different from key)
+      keys:
+        - key: POSTHOG_API_KEY
+          envName: posthog_api_key
+        - key: DATABASE_URI
+          envName: DATABASE_URI
+        - key: API_KEY
+          envName: API_KEY
+    # Service-specific secrets (unique to this deployment)
+    service:
+      # Set true to inject environment variables from a service-specific Kubernetes Secret.
+      # The secret must be created beforehand in the same namespace.
+      enabled: false
+      # Name of the service-specific Kubernetes Secret
+      secretName: "service-specific-secrets"
+      # List of keys to extract from the service secret
+      # Each item has:
+      #   key: The key name in the Kubernetes Secret
+      #   envName: The environment variable name in the pod (can be different from key)
+      keys:
+        - key: SERVICE_API_KEY
+          envName: service_api_key
+        - key: SERVICE_SECRET
+          envName: SERVICE_SECRET

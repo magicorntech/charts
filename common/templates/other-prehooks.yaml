@@ -75,6 +75,24 @@ spec:
           {{- end }}
           env:
             {{- toYaml .Values.global.deployment.env | nindent 12 }}
+            {{- if .Values.global.k8sSecrets.common.enabled }}
+            {{- range .Values.global.k8sSecrets.common.keys }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.global.k8sSecrets.common.secretName }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.global.k8sSecrets.service.enabled }}
+            {{- range .Values.global.k8sSecrets.service.keys }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.global.k8sSecrets.service.secretName }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- end }}
           resources:
             {{- toYaml .Values.global.deployment.resources | nindent 12 }}
 {{- end }}
