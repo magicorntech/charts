@@ -39,7 +39,7 @@ spec:
       serviceAccountName: {{ include "charts-statefulset.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.global.security.podSecurityContext | nindent 8 }}
-      {{- if or .Values.global.configMap.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
+      {{- if or .Values.global.configMap.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.gcp.enabled) }}
       volumes:
         {{- if .Values.global.configMap.enabled }}
         - name: app-config
@@ -50,7 +50,7 @@ spec:
                 path: {{ .Values.global.configMap.fileName }}
             defaultMode: 420
         {{- end }}
-        {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
+        {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.gcp.enabled }}
         - name: gcpsecrets
           csi:
             driver: secrets-store-gke.csi.k8s.io
@@ -91,10 +91,10 @@ spec:
               mountPath: {{ .Values.global.configMap.mountPath }}
               subPath: {{ .Values.global.configMap.fileName }}
             {{- end }}
-            {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
-            {{- range .Values.global.secrets.data }}
+            {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.gcp.enabled }}
+            {{- range .Values.global.secrets.gcp.data }}
             - name: gcpsecrets
-              mountPath: {{ $.Values.global.secrets.mountPath }}/{{ .fileName }}
+              mountPath: {{ $.Values.global.secrets.gcp.mountPath }}/{{ .fileName }}
               subPath: {{ .fileName }}
               readOnly: true
             {{- end }}
