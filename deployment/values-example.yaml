@@ -94,17 +94,18 @@ rollout:
   canary:
     maxSurge: 1
     maxUnavailable: 0
-    # Canary will use the main service by default. For traffic splitting (Istio/ALB/Nginx), set true to create stable/canary services.
+    # Set true to create a separate preview/canary service for testing canary pods independently
+    # Main service will include all pods (stable + canary), Argo Rollouts manages traffic distribution
+    # When false, only main service is used
     createCanaryService: true
-    # Service name for stable traffic (leave empty to auto-generate: <release-name>-stable)
-    stableServiceName: ""
-    # Service name for canary traffic (leave empty to auto-generate: <release-name>-canary)
+    # Service name for preview/canary traffic (leave empty to auto-generate: <release-name>-preview)
+    # This service will only point to canary pods, managed by Argo Rollouts
     canaryServiceName: ""
     steps:
     - setWeight: 20
-    - pause: {duration: 5m}
+    - pause: {}
     - setWeight: 40
-    - pause: {duration: 5m}
+    - pause: {}
     - setWeight: 60
     - pause: {duration: 5m}
     - setWeight: 80
@@ -159,16 +160,22 @@ service:
 # External access to the service object above but you can't only receive external traffic, you must also enable your application for internal traffic as well.
 # By default, ingress traffic is forwarded to "outer" service port of "one".
 # If rollout is enabled, you can specify "rolloutService" to target specific rollout services:
-#   - For Canary: "stable" or "canary"
+#   - For Canary: "" (empty = main service with all pods) or "preview" (only canary pods)
 #   - For Blue-Green: "active" or "preview"
-#   - Leave empty or omit for normal deployment service
+#   - Leave empty for normal deployment service
+# 
+# Example Canary Setup:
+#   Ingress 1: rolloutService: "" (empty)     → Main service → All pods (stable + canary), traffic distributed by pod count
+#   Ingress 2: rolloutService: "preview"      → Preview service → Only canary pods for testing
 ingress:
 - enabled: true
   annotations: {} # You can add additional annotations if you'd like.
   className: null # Ignored if "destination == aws || destination == hcp".
   # Rollout service target (only used if rollout.enabled is true)
-  # For Canary: "stable" or "canary" | For Blue-Green: "active" or "preview" | Leave empty for normal deployment
-  rolloutService: "" # Example: "stable", "canary", "active", "preview"
+  # For Canary: "" (main service - all pods) or "preview" (only canary pods)
+  # For Blue-Green: "active" or "preview"
+  # Leave empty for normal deployment
+  rolloutService: "" # Example: "", "preview", "active"
   idleTimeout: 60
   scheme: internet-facing # or "internal".
   certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
@@ -191,7 +198,7 @@ ingress:
   annotations: {} # You can add additional annotations if you'd like.
   className: null # Ignored if "destination == aws || destination == hcp".
   # Rollout service target (only used if rollout.enabled is true)
-  rolloutService: "" # Example: "stable", "canary", "active", "preview"
+  rolloutService: "" # Example: "", "preview", "active"
   idleTimeout: 60
   scheme: internal # or "internal".
   certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00

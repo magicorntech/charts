@@ -2,7 +2,7 @@
 {{- if .Values.service.enabled }}
 {{- $skipMainService := false }}
 {{- if .Values.rollout.enabled }}
-  {{- if or (eq .Values.rollout.strategyType "blueGreen") .Values.rollout.canary.createCanaryService }}
+  {{- if eq .Values.rollout.strategyType "blueGreen" }}
     {{- $skipMainService = true }}
   {{- end }}
 {{- end }}

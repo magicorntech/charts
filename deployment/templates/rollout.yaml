@@ -146,8 +146,7 @@ spec:
     {{- if eq .Values.rollout.strategyType "canary" }}
     canary:
       {{- if .Values.rollout.canary.createCanaryService }}
-      stableService: {{ .Values.rollout.canary.stableServiceName | default (printf "%s-stable" (include "charts-deployment.name" .)) }}
-      canaryService: {{ .Values.rollout.canary.canaryServiceName | default (printf "%s-canary" (include "charts-deployment.name" .)) }}
+      canaryService: {{ .Values.rollout.canary.canaryServiceName | default (printf "%s-preview" (include "charts-deployment.name" .)) }}
       {{- end }}
       {{- if .Values.rollout.canary.maxSurge }}
       maxSurge: {{ .Values.rollout.canary.maxSurge }}

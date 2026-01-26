@@ -55,10 +55,8 @@ spec:
               service:
                 {{- if and $root.Values.rollout.enabled $ingress.rolloutService }}
                   {{- if eq $root.Values.rollout.strategyType "canary" }}
-                    {{- if eq $ingress.rolloutService "stable" }}
-                name: {{ $root.Values.rollout.canary.stableServiceName | default (printf "%s-stable" (include "charts-deployment.name" $root)) }}
-                    {{- else if eq $ingress.rolloutService "canary" }}
-                name: {{ $root.Values.rollout.canary.canaryServiceName | default (printf "%s-canary" (include "charts-deployment.name" $root)) }}
+                    {{- if eq $ingress.rolloutService "preview" }}
+                name: {{ $root.Values.rollout.canary.canaryServiceName | default (printf "%s-preview" (include "charts-deployment.name" $root)) }}
                     {{- else }}
                 name: {{ include "charts-deployment.name" $root }}
                     {{- end }}
@@ -81,10 +79,8 @@ spec:
               {{- else }}
                 {{- if and $root.Values.rollout.enabled $ingress.rolloutService }}
                   {{- if eq $root.Values.rollout.strategyType "canary" }}
-                    {{- if eq $ingress.rolloutService "stable" }}
-              serviceName: {{ $root.Values.rollout.canary.stableServiceName | default (printf "%s-stable" (include "charts-deployment.name" $root)) }}
-                    {{- else if eq $ingress.rolloutService "canary" }}
-              serviceName: {{ $root.Values.rollout.canary.canaryServiceName | default (printf "%s-canary" (include "charts-deployment.name" $root)) }}
+                    {{- if eq $ingress.rolloutService "preview" }}
+              serviceName: {{ $root.Values.rollout.canary.canaryServiceName | default (printf "%s-preview" (include "charts-deployment.name" $root)) }}
                     {{- else }}
               serviceName: {{ include "charts-deployment.name" $root }}
                     {{- end }}
