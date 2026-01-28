@@ -106,6 +106,7 @@ ingress:
   certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
   wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
   sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+  sslRedirect: true # Set to false to disable automatic HTTP to HTTPS redirect (AWS only).
   lbId: externalloadBalancerNameHere
   # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
   lbOrder: 100
@@ -122,6 +123,7 @@ ingress:
   certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
   wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
   sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+  sslRedirect: true # Set to false to disable automatic HTTP to HTTPS redirect (AWS only).
   lbId: internalloadBalancerNameHere
   # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
   lbOrder: 200

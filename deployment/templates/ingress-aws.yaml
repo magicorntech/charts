@@ -30,7 +30,9 @@ metadata:
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds={{ $ingress.idleTimeout }}, deletion_protection.enabled=true
     alb.ingress.kubernetes.io/scheme: {{ $ingress.scheme }}
     alb.ingress.kubernetes.io/ssl-policy: {{ $ingress.sslPolicy }}
+    {{- if $ingress.sslRedirect }}
     alb.ingress.kubernetes.io/ssl-redirect: '443'
+    {{- end }}
     alb.ingress.kubernetes.io/success-codes: '200'
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds={{ $root.Values.deployment.deregistrationTime }}
     alb.ingress.kubernetes.io/target-type: ip
