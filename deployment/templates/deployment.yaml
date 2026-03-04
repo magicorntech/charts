@@ -74,7 +74,7 @@ spec:
             - name: app-config
               readOnly: true
               mountPath: {{ .Values.configMap.mountPath }}
-              {{- if ne (.Values.configMap.useSubPath | default true) false }}
+              {{- if ne (toString .Values.configMap.useSubPath) "false" }}
               subPath: {{ .Values.configMap.fileName }}
               {{- end }}
             {{- end }}
