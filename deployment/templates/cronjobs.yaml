@@ -60,6 +60,14 @@ spec:
                 subPath: {{ .Values.configMap.fileName }}
             {{- end }}
           dnsPolicy: ClusterFirst
+          {{- $ndots := 2 -}}
+          {{- with .Values.deployment.dnsConfig }}
+          {{- $ndots = default 2 .ndots -}}
+          {{- end }}
+          dnsConfig:
+            options:
+              - name: ndots
+                value: "{{ $ndots }}"
           {{- with .Values.deployment.nodeSelector }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}

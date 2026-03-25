@@ -76,6 +76,9 @@ deployment:
   #  eks.amazonaws.com/capacityType: ON_DEMAND
   tolerations: []
   affinity: {}
+  # Override kubelet's default ndots (usually 5)
+  dnsConfig:
+    ndots: 2
 
 # Cluster-wide service object details.
 # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
