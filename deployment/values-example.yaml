@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v0.7.5
+# v0.7.6
 
 # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp and datacenter. (for now) 
 destination: aws
@@ -74,6 +74,8 @@ deployment:
   deregistrationTime: 60
   failSeconds: 600
   revisionHistory: 25
+  # DNS resolver ndots for pod dnsConfig.options (default 2).
+  ndots: 2
   nodeSelector: {}
   #  eks.amazonaws.com/capacityType: ON_DEMAND
   affinity: {}

@@ -25,6 +25,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "charts-deployment.serviceAccountName" . }}
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: {{ .Values.deployment.ndots | default 2 | toString | quote }}
       restartPolicy: Never
       {{- if .Values.configMap.enabled }}
       volumes:

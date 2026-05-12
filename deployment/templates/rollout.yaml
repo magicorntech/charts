@@ -120,6 +120,10 @@ spec:
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
       dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: {{ .Values.deployment.ndots | default 2 | toString | quote }}
       {{- with .Values.deployment.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
