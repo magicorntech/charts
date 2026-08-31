@@ -19,38 +19,51 @@ This repository contains versatile Helm charts designed to package generic servi
 
 ### Available Charts
 
+Only two charts are ever installed directly — `common` is a **library
+chart** (`type: library`), meaning it has no templates of its own that
+render on their own; it exists purely to be depended on.
+
 | Chart | Type | Description | Use Case |
 |-------|------|-------------|----------|
-| `deployment` | Umbrella | Combines common + deployment workload | Deploy stateless applications |
-| `statefulset` | Umbrella | Combines common + statefulset workload | Deploy stateful applications |
-| `common` | Application | Shared templates (Service, Ingress, etc.) | Used as subchart by umbrella charts |
-| `common-deployment` | Application | Kubernetes Deployment workload | Used as subchart by deployment umbrella |
-| `common-statefulset` | Application | Kubernetes StatefulSet workload | Used as subchart by statefulset umbrella |
+| `deployment` | Umbrella | Owns its own `templates/` (Deployment/Rollout, Service, Ingress, HPA, ...), depends on `common` | Deploy stateless applications |
+| `statefulset` | Umbrella | Owns its own `templates/` (StatefulSet, headless Service, Service, Ingress, HPA, ...), depends on `common` | Deploy stateful applications |
+| `common` | **Library** (not installable on its own) | Every shared piece of logic (`{{- define ... }}` blocks only — Service/Ingress/RBAC/HPA/volumes/etc.), consumed by both umbrellas | Not deployed directly — a single shared dependency |
 
 ### Chart Architecture
 
-This repository follows Helm best practices with an **umbrella chart structure**:
-
-- **Umbrella Charts**: `deployment` and `statefulset` are umbrella charts that combine multiple subcharts
-- **Shared Resources**: `common` chart contains shared templates (Service, Ingress, etc.)
-- **Workload Charts**: `common-deployment` and `common-statefulset` contain workload-specific templates
-- **Global Values**: Shared configuration using the `global:` key flows to all subcharts
-- **No Code Duplication**: Service and ingress templates exist only in the `common` chart
+- **Two installable charts, one shared dependency.** `deployment` and
+  `statefulset` each have a real `templates/` directory of their own,
+  usually just a one-line `{{- include "charts-common.X" . }}` per
+  object — the actual rendering logic lives once, in `common`.
+- **Why a library chart, specifically**: Helm doesn't deduplicate
+  transitive dependencies, so declaring `common` as a plain `application`
+  subchart of *another* subchart would render every shared object twice
+  in a single release (two Services, two Ingresses, ...). A `library`
+  chart has no templates of its own to accidentally render at all — it
+  can only be reached through an `include`, which is exactly the shape
+  this repo needs.
+- **Global Values**: Shared configuration using the `global:` key flows
+  from each umbrella's own `values.yaml` into every `common.*` template.
+- **`.Chart.Name`/`.Chart.Version` always resolve to the umbrella**,
+  never the library — a real fix from an earlier architecture where a
+  single release could show two different `helm.sh/chart` label values
+  depending on which subchart rendered a given object.
 
 > **Note:** These charts are not recommended for other cloud platforms unless you plan to manage them as datacenter deployments.
 
 ## Compatibility
 
 - **Kubernetes:** v1.25+
-- **Helm:** v3.10+
+- **Helm:** v3.10+ required and CI-tested; Helm 4.x renders identically and is exercised in CI too, but is still treated as advisory (not yet a promise this chart makes to consumers) until it's been in the field longer.
 
 ## Chart Components
 
-Both charts are organized into ten (10) distinct configuration groups for simplicity and modularity:
+Both charts are organized into distinct configuration groups for simplicity and modularity:
 
 | Component | Description | Required |
 |-----------|-------------|----------|
 | `deployment` | Core application deployment configuration | ✅ Required |
+| `rollout` | Argo Rollouts (canary/blueGreen) instead of a plain Deployment — **`deployment` chart only**, mutually exclusive with `deployment.enabled` | Optional |
 | `service` | Service configuration for internal/external access | Optional |
 | `ingress` | Ingress controller configuration | Optional |
 | `scaling` | Horizontal Pod Autoscaler settings | Optional |
@@ -67,7 +80,7 @@ The StatefulSet chart includes additional features for stateful applications:
 
 - **Volume Claim Templates**: Each pod gets its own persistent volume (REQUIRED)
 - **Ordered Pod Management**: Pods are created/deleted in order (0, 1, 2, ...)
-- **Stable Network Identity**: Predictable hostnames and network identity
+- **Stable Network Identity**: a headless Service (`<release>-headless`) backs the StatefulSet's own `spec.serviceName`, giving every pod a real, resolvable DNS name (`<pod>.<release>-headless.<namespace>.svc.cluster.local`)
 - **Graceful Updates**: Rolling updates with partition control
 
 > **Minimum requirements:** 
@@ -112,8 +125,9 @@ helm upgrade --install --create-namespace \
 ### Global Values Structure
 
 All charts use a consistent global values structure with the following key sections:
-- `global.destination`: Target platform (aws, gcp, hcp, datacenter)
-- `global.deployment`: Application configuration (image, resources, health checks)
+- `global.destination`: Target platform (aws, gcp, hcp, datacenter) — schema-validated, see Values Contract below
+- `global.deployment`: Application configuration (image, resources, health checks, `enabled` toggle, DNS/scheduling overrides)
+- `global.rollout`: Argo Rollouts canary/blueGreen — **`deployment` chart only**, off by default, mutually exclusive with `global.deployment.enabled`
 - `global.service`: Service configuration (ports, type, annotations)
 - `global.ingress`: Ingress configuration (hosts, TLS, load balancer settings)
 - `global.pvc`: Persistent volume configuration (different for Deployment vs StatefulSet)
@@ -121,22 +135,24 @@ All charts use a consistent global values structure with the following key secti
 - `global.secrets`: Secret management (GCP Secret Manager integration)
 - `global.autoscaling`: Horizontal Pod Autoscaler configuration
 - `global.cronjobs`: Scheduled job configurations
+- `global.k8sSecrets`: Plain Kubernetes Secret env-var injection
+- `global.nameOverride` / `global.fullnameOverride`: override the computed object name (plain `.Release.Name` by default)
 
 ### Chart-Specific Configuration
 
 #### Deployment Chart (Umbrella)
 - **File**: `deployment/values-example.yaml`
 - **Use Case**: Stateless applications, web services, APIs
-- **PVC**: Optional (shared storage with ReadWriteMany)
-- **Dependencies**: `charts-common@0.0.1` + `charts-common-deployment@0.0.1`
-- **Renders**: Service + Ingress + Deployment + optional resources
+- **PVC**: Optional (shared storage, `global.pvc.accessModes` defaults to `ReadWriteOnce` — set explicitly for `ReadWriteMany`)
+- **Dependencies**: `charts-common@1.0.0` (the one shared library chart — see Chart Architecture above)
+- **Renders**: Service + Ingress + Deployment (or Rollout, see `global.rollout.enabled`) + optional resources
 
 #### StatefulSet Chart (Umbrella)
 - **File**: `statefulset/values-example.yaml`
 - **Use Case**: Stateful applications, databases, message queues
-- **PVC**: **MANDATORY** (per-pod storage with ReadWriteOnce)
-- **Dependencies**: `charts-common@0.0.1` + `charts-common-statefulset@0.0.1`
-- **Renders**: Service + Ingress + StatefulSet + VolumeClaimTemplates + optional resources
+- **PVC**: **MANDATORY** (per-pod storage, `global.pvc.accessModes` defaults to `ReadWriteOnce`)
+- **Dependencies**: `charts-common@1.0.0` (same shared library chart the deployment umbrella uses)
+- **Renders**: Service + headless Service + Ingress + StatefulSet + VolumeClaimTemplates + optional resources
 
 ### Value Inheritance
 
@@ -145,14 +161,46 @@ Charts use the following value resolution order:
 2. **Chart-specific values** - override global values for specific charts
 3. **Command-line overrides** (`--set` flags) - highest priority
 
+### Values Contract
+
+The `global.*` values schema is **frozen and additive-only**: any new key
+this chart ever gains defaults to reproducing the exact behavior it had
+before that key existed, and no `additionalProperties: false` is set
+anywhere — a values file with keys this chart doesn't (yet) recognize
+keeps working, it just doesn't do anything extra with the parts it
+doesn't understand. Existing values files should never need editing to
+pick up a new chart version, only to opt into whatever that version adds.
+
+Two enforced exceptions, both deliberate:
+
+- **`global.destination` is schema-validated against a fixed enum**
+  (`aws`, `gcp`, `hcp`, `datacenter`). An unrecognized value is rejected
+  at render time with a clear error, both by `values.schema.json` (Helm's
+  own JSON-schema validation) and by a second, independent template-level
+  `fail()` check (for an older Helm without schema support, or a render
+  invoked with `--skip-schema-validation`). This was already effectively
+  required — an unset or misspelled destination previously failed with an
+  opaque Go template error deep inside the ingress/service logic instead
+  of a clear message up front.
+- **Ingress object naming is deliberately based on list *position* and
+  list *length*, not on which entries happen to be `enabled`.** With more
+  than one `global.ingress[]` entry, the first is named `<release>-1`,
+  the second `<release>-2`, and so on — disabling one entry never renames
+  another. This is intentional: renaming an Ingress makes Helm delete and
+  recreate it, which for an AWS ALB means provisioning a **brand new load
+  balancer**, with real downtime and (depending on your DNS setup) a
+  changed endpoint. Toggling `enabled` on any entry is always safe;
+  reordering entries in the list is not — set `global.ingress[].name`
+  explicitly if you need a name that survives a reorder.
+
 ### Key Differences
 
 | Feature | Deployment | StatefulSet |
 |---------|------------|-------------|
 | **Pod Management** | Random pod names (app-xyz123) | Ordered pod names (app-0, app-1, app-2) |
-| **Storage** | Shared PVC (optional, ReadWriteMany) | Individual PVCs (**mandatory**, ReadWriteOnce) |
+| **Storage** | Shared PVC (optional, default ReadWriteOnce) | Individual PVCs (**mandatory**, default ReadWriteOnce) |
 | **Network** | Random pod IPs | Stable network identity with headless service |
-| **Updates** | Rolling update with surge | Ordered rolling updates (no surge) |
+| **Updates** | Rolling update with surge, or Argo Rollouts canary/blueGreen (`global.rollout.enabled`) | Ordered rolling updates (no surge) |
 | **Scaling** | Can scale up/down randomly | Scales in order (0→1→2, 2→1→0) |
 | **Use Case** | Web services, APIs, stateless apps | Databases, message queues, stateful apps |
 
