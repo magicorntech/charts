@@ -1,0 +1,52 @@
+name: Release preflight
+
+# Tag pushes go straight to CodeBuild via a webhook — .devops/buildspec.yml
+# packages and pushes with zero gate in between. This workflow runs
+# *alongside* that, not in front of it (see the "open item" this repo's
+# own plan calls out: a manually-cut tag push bypasses the PR path
+# entirely, and closing that gap for real means adding a pre_build step to
+# buildspec.yml itself, deliberately left out of this pass). What this
+# workflow catches, it catches after the fact — its value is a fast,
+# loud signal on something CodeBuild's own "just package and push" logic
+# has no opinion about at all.
+on:
+  push:
+    tags: ["*.*.*"]
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: install helm
+        run: |
+          curl -fsSL "https://get.helm.sh/helm-v3.21.4-linux-amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin --strip-components=1 linux-amd64/helm
+          helm version
+
+      - name: version-guard --mode=release
+        run: ci/version-guard.sh --mode=release
+
+      - name: refuse to overwrite an already-published version
+        # ECR Public OCI tags are mutable — `helm push` would silently
+        # succeed and overwrite whatever's already there under this exact
+        # version, for every consumer already pinned to it. No AWS
+        # credentials needed either way: ECR Public serves anonymous
+        # pulls for public repos, and `helm show chart` against an OCI
+        # ref is a pull, not a push.
+        run: |
+          set -euo pipefail
+          for chart in charts-deployment charts-statefulset; do
+            ref="oci://public.ecr.aws/magicorn/${chart}"
+            version="$(grep -E '^version: ' "${chart#charts-}/Chart.yaml" | awk '{print $2}')"
+            echo "checking ${ref}:${version} ..."
+            if helm show chart "$ref" --version "$version" >/dev/null 2>&1; then
+              echo "FAIL: ${chart} ${version} is already published — ECR Public tags are mutable, re-pushing would silently overwrite it for every existing consumer pinned to this version" >&2
+              exit 1
+            fi
+            echo "  OK — ${chart} ${version} is not yet published"
+          done

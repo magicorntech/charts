@@ -18,7 +18,7 @@ else
   HELM_ARCH := $(UNAME_M)
 endif
 
-.PHONY: tools test lint unittest render kubeconform package-check deps clean bump-version
+.PHONY: tools test lint unittest render kubeconform package-check deps clean bump-version version-guard
 
 tools: $(HELM)
 
@@ -45,6 +45,9 @@ kubeconform: tools
 
 package-check: tools
 	./ci/gate.sh package-check
+
+version-guard:
+	./ci/version-guard.sh --mode=auto
 
 test: tools
 	./ci/gate.sh all
