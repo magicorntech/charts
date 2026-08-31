@@ -162,10 +162,19 @@ cmd_notes() {
   # never anything that affects what actually gets deployed — doesn't
   # justify paying. So: probe once, cheaply, whether this specific Helm
   # binary's dry-run is genuinely offline; skip (not fail) if it isn't.
+  #
+  # Also covers a second, unrelated incompatibility found from a real CI
+  # run: Helm 3.10.3 (this repo's own README-documented minimum) doesn't
+  # accept `--dry-run=client` syntax at all -- that version's `--dry-run`
+  # is a plain boolean flag, and passing it a value fails immediately with
+  # `invalid argument "client" for "--dry-run" flag: strconv.ParseBool:
+  # parsing "client": invalid syntax`, before cluster reachability is even
+  # reached. Same "this Helm binary can't do what this check needs" bucket
+  # as the reachability case -- skip, don't fail.
   local probe
   probe="$(KUBECONFIG=/dev/null helm install ci-notes-probe deployment -f ci/scenarios/deployment/minimal.yaml --dry-run=client 2>&1 || true)"
-  if grep -qE "cluster unreachable|could not get server version|unable to build kubernetes objects" <<< "$probe"; then
-    echo "SKIP: this Helm binary's --dry-run=client still requires live cluster reachability (see this function's own comment) — notes assertions not run"
+  if grep -qE 'cluster unreachable|could not get server version|unable to build kubernetes objects|invalid argument "client" for "--dry-run" flag' <<< "$probe"; then
+    echo "SKIP: this Helm binary's --dry-run=client isn't usable the way this check needs (see this function's own comment) — notes assertions not run"
     return 0
   fi
 
@@ -190,13 +199,32 @@ cmd_destination_guard() {
   # invalid `global.destination` crashes the whole unittest run rather
   # than producing an assertable per-test failure. Shell-level check
   # instead, same fallback shape as the NOTES.txt check above.
+  #
+  # The exact error WORDING is Helm-version-dependent (confirmed for
+  # real): 3.21.4 and 4.2.4 both say `value must be one of 'aws', 'gcp',
+  # 'hcp', 'datacenter'`, but 3.10.3 -- a different underlying
+  # gojsonschema version -- says `must be one of the following: "aws",
+  # "gcp", "hcp", "datacenter"` instead (different quote style, different
+  # phrasing). Both are the SAME real rejection, just formatted
+  # differently, so the check matches on substance (every valid
+  # destination name actually present) rather than one exact phrasing —
+  # a looser match, on purpose, not a weaker one: it still fails if the
+  # rejection came from anywhere else (a missing name means the error is
+  # about something other than this schema rule).
   for chart in deployment statefulset; do
     if helm template "ci-$chart" "$chart" --set global.destination=azure > /dev/null 2>/tmp/destination-guard.err; then
       echo "FAIL: $chart accepted global.destination=azure — the schema should have rejected it"
       exit 1
     fi
-    grep -q "value must be one of 'aws', 'gcp', 'hcp', 'datacenter'" /tmp/destination-guard.err \
-      || { echo "FAIL: $chart rejected the bad destination for the wrong reason:"; cat /tmp/destination-guard.err; exit 1; }
+    if ! grep -q "destination" /tmp/destination-guard.err \
+      || ! grep -q "aws" /tmp/destination-guard.err \
+      || ! grep -q "gcp" /tmp/destination-guard.err \
+      || ! grep -q "hcp" /tmp/destination-guard.err \
+      || ! grep -q "datacenter" /tmp/destination-guard.err; then
+      echo "FAIL: $chart rejected the bad destination for the wrong reason:"
+      cat /tmp/destination-guard.err
+      exit 1
+    fi
   done
   rm -f /tmp/destination-guard.err
 }
