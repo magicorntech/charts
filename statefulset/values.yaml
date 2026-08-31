@@ -1,0 +1,95 @@
+# Real Helm defaults for the StatefulSet umbrella chart.
+#
+# Every *.enabled defaults to false, every map to {}, every list to [].
+# This file exists purely so an unguarded `.Values.global.X` deref in a
+# template stops nil-pointering when a value isn't supplied — it must
+# never, on its own, cause anything beyond the StatefulSet itself to
+# render. See values-example.yaml for a realistic, fully-populated
+# reference configuration.
+#
+# Unlike the Deployment chart: no `deployment.strategy` key (StatefulSet
+# hardcodes its own updateStrategy) and `pvc` has no `enabled` — a
+# StatefulSet's volumeClaimTemplates are unconditional (README calls PVC
+# mandatory for this chart), so its mountPath/subPath/size/storageClass
+# are always dereferenced directly, never behind a guard.
+global:
+  destination: aws
+
+  deployment:
+    image:
+      uri: ""
+      pullPolicy: IfNotPresent
+      imagePullSecrets: []
+      command: []
+      args: []
+    env: []
+    replicaCount: 1
+    resources: {}
+    readiness: {}
+    liveness: {}
+    podAnnotations: {}
+    lifecycle: {}
+    deregistrationTime: 30
+    failSeconds: 600
+    revisionHistory: 10
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints: []
+
+  service:
+    enabled: false
+    annotations: {}
+    type: ClusterIP
+    ports: {}
+
+  ingress: []
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilizationPercentage: null
+    targetMemoryUtilizationPercentage: null
+    behavior: {}
+
+  configMap:
+    enabled: false
+    name: ""
+    fileName: ""
+    mountPath: ""
+
+  prehooks:
+    dbMigrations:
+      enabled: false
+      command: []
+      args: []
+    otherPrehooks:
+      enabled: false
+      command: []
+      args: []
+
+  cronjobs: []
+
+  security:
+    serviceAccount:
+      enabled: false
+      annotations: {}
+      clusterWideAccess: false
+      rules: []
+    sgPolicy:
+      enabled: false
+      securityGroupId: ""
+    podSecurityContext: {}
+    securityContext: {}
+
+  pvc:
+    mountPath: ""
+    subPath: ""
+    size: ""
+    storageClass: ""
+
+  secrets:
+    enabled: false
+    mountPath: ""
+    data: []

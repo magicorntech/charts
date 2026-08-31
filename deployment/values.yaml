@@ -1,0 +1,98 @@
+# Real Helm defaults for the Deployment umbrella chart.
+#
+# Every *.enabled defaults to false, every map to {}, every list to [].
+# This file exists purely so an unguarded `.Values.global.X` deref in a
+# template stops nil-pointering when a value isn't supplied — it must
+# never, on its own, cause anything beyond the Deployment itself to
+# render. See values-example.yaml for a realistic, fully-populated
+# reference configuration.
+global:
+  # Target platform. Selects which Service/Ingress flavour renders and
+  # gates the platform-specific objects (SecurityGroupPolicy on aws,
+  # SecretProviderClass on gcp). "aws" is the shipped example's own
+  # default — an empty string would fail Helm's template engine outright
+  # (`eq nil "aws"` errors, it doesn't just evaluate false), which is
+  # exactly the failure this file exists to prevent.
+  destination: aws
+
+  deployment:
+    image:
+      uri: ""
+      pullPolicy: IfNotPresent
+      imagePullSecrets: []
+      command: []
+      args: []
+    env: []
+    replicaCount: 1
+    resources: {}
+    readiness: {}
+    liveness: {}
+    podAnnotations: {}
+    strategy: {}
+    lifecycle: {}
+    deregistrationTime: 30
+    failSeconds: 600
+    revisionHistory: 10
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints: []
+
+  service:
+    enabled: false
+    annotations: {}
+    type: ClusterIP
+    ports: {}
+
+  ingress: []
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilizationPercentage: null
+    targetMemoryUtilizationPercentage: null
+    behavior: {}
+
+  configMap:
+    enabled: false
+    name: ""
+    fileName: ""
+    mountPath: ""
+
+  prehooks:
+    dbMigrations:
+      enabled: false
+      command: []
+      args: []
+    otherPrehooks:
+      enabled: false
+      command: []
+      args: []
+
+  cronjobs: []
+
+  security:
+    serviceAccount:
+      enabled: false
+      annotations: {}
+      clusterWideAccess: false
+      rules: []
+    sgPolicy:
+      enabled: false
+      securityGroupId: ""
+    podSecurityContext: {}
+    securityContext: {}
+
+  pvc:
+    enabled: false
+    mountPath: ""
+    subPath: ""
+    size: ""
+    accessModes: []
+    storageClass: ""
+
+  secrets:
+    enabled: false
+    mountPath: ""
+    data: []

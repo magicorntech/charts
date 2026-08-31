@@ -1,0 +1,96 @@
+# Real Helm defaults so `common` (the shared-template subchart) can be
+# linted/templated standalone, with no -f, exactly like the two umbrella
+# charts. `common-deployment`/`common-statefulset` do NOT get an
+# equivalent file in this pass — they call `charts-common.*` helpers
+# without declaring `common` as a dependency (a real pre-existing defect),
+# and standalone linting them needs that dependency fixed first. That fix
+# is deliberately deferred to the library-chart restructure: declaring
+# `common` as a dependency of these two subcharts today, before that
+# restructure, would make Helm render `common`'s templates twice inside
+# every real deployment (once via the umbrella's own dependency, once via
+# the subchart's) — a double-Service, double-Ingress regression, not a
+# lint fix. See CLAUDE-plan Phase 4.
+global:
+  destination: aws
+
+  deployment:
+    image:
+      uri: ""
+      pullPolicy: IfNotPresent
+      imagePullSecrets: []
+      command: []
+      args: []
+    env: []
+    replicaCount: 1
+    resources: {}
+    readiness: {}
+    liveness: {}
+    podAnnotations: {}
+    strategy: {}
+    lifecycle: {}
+    deregistrationTime: 30
+    failSeconds: 600
+    revisionHistory: 10
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints: []
+
+  service:
+    enabled: false
+    annotations: {}
+    type: ClusterIP
+    ports: {}
+
+  ingress: []
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilizationPercentage: null
+    targetMemoryUtilizationPercentage: null
+    behavior: {}
+
+  configMap:
+    enabled: false
+    name: ""
+    fileName: ""
+    mountPath: ""
+
+  prehooks:
+    dbMigrations:
+      enabled: false
+      command: []
+      args: []
+    otherPrehooks:
+      enabled: false
+      command: []
+      args: []
+
+  cronjobs: []
+
+  security:
+    serviceAccount:
+      enabled: false
+      annotations: {}
+      clusterWideAccess: false
+      rules: []
+    sgPolicy:
+      enabled: false
+      securityGroupId: ""
+    podSecurityContext: {}
+    securityContext: {}
+
+  pvc:
+    enabled: false
+    mountPath: ""
+    subPath: ""
+    size: ""
+    accessModes: []
+    storageClass: ""
+
+  secrets:
+    enabled: false
+    mountPath: ""
+    data: []
