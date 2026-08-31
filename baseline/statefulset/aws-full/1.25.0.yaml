@@ -6,7 +6,6 @@ metadata:
   name: ci-statefulset
   namespace: "ci"
   annotations:
-    {}
   labels:
     helm.sh/chart: charts-common-0.0.1
     k8s.magicorn.net/chart-version: 0.0.1
@@ -15,7 +14,7 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
 spec:
-  type: ClusterIP
+  type: "ClusterIP"
   ports:
     - name: one
       targetPort: 80
@@ -119,16 +118,16 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
 
       containers:
         - name: ci-statefulset
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           ports:
             - name: one
               containerPort: 80
@@ -140,13 +139,13 @@ spec:
             # StatefulSet specific: volumeMounts for persistent storage
             # Each pod will get its own PVC based on volumeClaimTemplates
             - name: storage
-              mountPath: /data
-              subPath: 
+              mountPath: "/data"
+              subPath: ""
               readOnly: false
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
           readinessProbe:
             failureThreshold: 2
             httpGet:
@@ -190,7 +189,8 @@ spec:
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 60
       topologySpreadConstraints:
-        - maxSkew: 1
+        -
+          maxSkew: 1
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
@@ -216,7 +216,7 @@ spec:
       resources:
         requests:
           storage: 10Gi
-      storageClassName: gp2
+      storageClassName: "gp2"
 
 ---
 # Source: charts-statefulset/charts/charts-common/templates/cronjobs.yaml
@@ -253,19 +253,22 @@ spec:
           volumes:
             - name: app-config
               configMap:
-                name: app-config
+                name: "app-config"
                 items:
-                  - key: .env.prod
-                    path: .env.prod
+                  - key: ".env.prod"
+                    path: ".env.prod"
                 defaultMode: 420
           containers:
           - name: cron1
             image: "registry.example.com/app:1.0.0"
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: "IfNotPresent"
             env:
             - name: foo
               value: bar
-            command: [/usr/local/bin/php artisan schedule:run]
+            command: 
+            - /usr/local/bin/php
+            - artisan
+            - schedule:run
             args: 
             - --no-interaction
             resources:
@@ -277,8 +280,8 @@ spec:
             volumeMounts:
               - name: app-config
                 readOnly: true
-                mountPath: /var/www/html
-                subPath: .env.prod
+                mountPath: "/var/www/html"
+                subPath: ".env.prod"
           dnsPolicy: ClusterFirst
           restartPolicy: OnFailure
           schedulerName: default-scheduler
@@ -298,8 +301,8 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
   annotations:
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
-    alb.ingress.kubernetes.io/group.name: externalloadBalancerNameHere
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00"
+    alb.ingress.kubernetes.io/group.name: "externalloadBalancerNameHere"
     alb.ingress.kubernetes.io/group.order: '100'
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
@@ -307,8 +310,8 @@ metadata:
     alb.ingress.kubernetes.io/healthy-threshold-count: '2'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60, deletion_protection.enabled=true
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/ssl-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/success-codes: '200'
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=60
@@ -320,8 +323,8 @@ spec:
     - host: "hostname.example"
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: "/"
+            pathType: "Prefix"
             backend:
               service:
                 name: ci-statefulset
@@ -363,7 +366,6 @@ metadata:
     "helm.sh/hook-weight": "-200"
   namespace: "ci"
 rules:
-
 - apiGroups: [""]
   resources: ["configmaps","events","pods","pods/attach","pods/exec","secrets","services"]
   verbs: ["get","list","watch","create","patch","update","delete"]
@@ -429,15 +431,15 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
       containers:
-        - name: charts-common
+        - name: ci-statefulset
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           command:
             - /usr/local/bin/python
           args:
@@ -447,8 +449,8 @@ spec:
           volumeMounts:
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
           env:
             - name: foo
               value: bar
@@ -492,15 +494,15 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
       containers:
-        - name: charts-common
+        - name: ci-statefulset
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           command:
             - /usr/local/bin/python
           args:
@@ -509,8 +511,8 @@ spec:
           volumeMounts:
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
           env:
             - name: foo
               value: bar
@@ -537,5 +539,5 @@ spec:
       app.kubernetes.io/instance: ci-statefulset
   securityGroups:
     groupIds: 
-      - sg-0123456789abcdef
+      - "sg-0123456789abcdef"
 

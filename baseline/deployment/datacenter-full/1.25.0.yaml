@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
 spec:
-  type: ClusterIP
+  type: "ClusterIP"
   ports:
     - name: one
       targetPort: 80
@@ -71,10 +71,10 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
         - name: storage
           persistentVolumeClaim:
@@ -83,7 +83,7 @@ spec:
       containers:
         - name: ci-deployment
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           ports:
             - name: one
               containerPort: 80
@@ -94,11 +94,11 @@ spec:
           volumeMounts:
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
             - name: storage
-              mountPath: /efs/test
-              subPath: test
+              mountPath: "/efs/test"
+              subPath: "test"
               readOnly: false
           readinessProbe:
             failureThreshold: 2
@@ -143,7 +143,8 @@ spec:
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 60
       topologySpreadConstraints:
-        - maxSkew: 1
+        -
+          maxSkew: 1
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
@@ -229,19 +230,22 @@ spec:
           volumes:
             - name: app-config
               configMap:
-                name: app-config
+                name: "app-config"
                 items:
-                  - key: .env.prod
-                    path: .env.prod
+                  - key: ".env.prod"
+                    path: ".env.prod"
                 defaultMode: 420
           containers:
           - name: cron1
             image: "registry.example.com/app:1.0.0"
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: "IfNotPresent"
             env:
             - name: foo
               value: bar
-            command: [/usr/local/bin/php artisan schedule:run]
+            command: 
+            - /usr/local/bin/php
+            - artisan
+            - schedule:run
             args: 
             - --no-interaction
             resources:
@@ -253,8 +257,8 @@ spec:
             volumeMounts:
               - name: app-config
                 readOnly: true
-                mountPath: /var/www/html
-                subPath: .env.prod
+                mountPath: "/var/www/html"
+                subPath: ".env.prod"
           dnsPolicy: ClusterFirst
           restartPolicy: OnFailure
           schedulerName: default-scheduler
@@ -276,17 +280,17 @@ metadata:
   annotations:
     {}
 spec:
-  ingressClassName: nginx
+  ingressClassName: "nginx"
   tls:
     - hosts:
         - "hostname.example"
-      secretName: hostname-tls
+      secretName: "hostname-tls"
   rules:
     - host: "hostname.example"
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: "/"
+            pathType: "Prefix"
             backend:
               service:
                 name: ci-deployment
@@ -352,7 +356,6 @@ metadata:
     "helm.sh/hook-weight": "-200"
   namespace: "ci"
 rules:
-
 - apiGroups: [""]
   resources: ["configmaps","events","pods","pods/attach","pods/exec","secrets","services"]
   verbs: ["get","list","watch","create","patch","update","delete"]
@@ -418,15 +421,15 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
       containers:
-        - name: charts-common
+        - name: ci-deployment
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           command:
             - /usr/local/bin/python
           args:
@@ -436,8 +439,8 @@ spec:
           volumeMounts:
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
           env:
             - name: foo
               value: bar
@@ -481,15 +484,15 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
       containers:
-        - name: charts-common
+        - name: ci-deployment
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           command:
             - /usr/local/bin/python
           args:
@@ -498,8 +501,8 @@ spec:
           volumeMounts:
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
           env:
             - name: foo
               value: bar

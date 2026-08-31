@@ -6,7 +6,6 @@ metadata:
   name: ci-deployment
   namespace: "ci"
   annotations:
-    {}
   labels:
     helm.sh/chart: charts-common-0.0.1
     k8s.magicorn.net/chart-version: 0.0.1
@@ -15,7 +14,7 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
 spec:
-  type: ClusterIP
+  type: "ClusterIP"
   ports:
     - name: one
       targetPort: 80
@@ -58,14 +57,13 @@ spec:
         app.kubernetes.io/name: ci-deployment
         app.kubernetes.io/instance: ci-deployment
     spec:
-      serviceAccountName: 
       securityContext:
         {}
 
       containers:
         - name: ci-deployment
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           ports:
             - name: one
               containerPort: 80
@@ -119,8 +117,8 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
   annotations:
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:000000000000:certificate/00000000-0000-0000-0000-000000000000
-    alb.ingress.kubernetes.io/group.name: minimal-lb
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:eu-west-1:000000000000:certificate/00000000-0000-0000-0000-000000000000"
+    alb.ingress.kubernetes.io/group.name: "minimal-lb"
     alb.ingress.kubernetes.io/group.order: '100'
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '10'
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
@@ -128,8 +126,8 @@ metadata:
     alb.ingress.kubernetes.io/healthy-threshold-count: '2'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60, deletion_protection.enabled=true
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/ssl-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/success-codes: '200'
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
@@ -141,8 +139,8 @@ spec:
     - host: "minimal.example.com"
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: "/"
+            pathType: "Prefix"
             backend:
               service:
                 name: ci-deployment

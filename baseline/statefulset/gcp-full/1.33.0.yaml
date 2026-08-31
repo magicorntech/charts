@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
 spec:
-  type: ClusterIP
+  type: "ClusterIP"
   ports:
     - name: one
       targetPort: 80
@@ -119,10 +119,10 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
         - name: gcpsecrets
           csi:
@@ -134,7 +134,7 @@ spec:
       containers:
         - name: ci-statefulset
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           ports:
             - name: one
               containerPort: 80
@@ -146,13 +146,13 @@ spec:
             # StatefulSet specific: volumeMounts for persistent storage
             # Each pod will get its own PVC based on volumeClaimTemplates
             - name: storage
-              mountPath: /data
-              subPath: 
+              mountPath: "/data"
+              subPath: ""
               readOnly: false
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
             - name: gcpsecrets
               mountPath: /opt/app/.env
               subPath: .env
@@ -200,7 +200,8 @@ spec:
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 60
       topologySpreadConstraints:
-        - maxSkew: 1
+        -
+          maxSkew: 1
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
@@ -226,7 +227,7 @@ spec:
       resources:
         requests:
           storage: 10Gi
-      storageClassName: gp2
+      storageClassName: "gp2"
 
 ---
 # Source: charts-statefulset/charts/charts-common/templates/cronjobs.yaml
@@ -263,10 +264,10 @@ spec:
           volumes:
             - name: app-config
               configMap:
-                name: app-config
+                name: "app-config"
                 items:
-                  - key: .env.prod
-                    path: .env.prod
+                  - key: ".env.prod"
+                    path: ".env.prod"
                 defaultMode: 420
             - name: gcpsecrets
               csi:
@@ -277,11 +278,14 @@ spec:
           containers:
           - name: cron1
             image: "registry.example.com/app:1.0.0"
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: "IfNotPresent"
             env:
             - name: foo
               value: bar
-            command: [/usr/local/bin/php artisan schedule:run]
+            command: 
+            - /usr/local/bin/php
+            - artisan
+            - schedule:run
             args: 
             - --no-interaction
             resources:
@@ -293,8 +297,8 @@ spec:
             volumeMounts:
               - name: app-config
                 readOnly: true
-                mountPath: /var/www/html
-                subPath: .env.prod
+                mountPath: "/var/www/html"
+                subPath: ".env.prod"
               - name: gcpsecrets
                 mountPath: /opt/app/.env
                 subPath: .env
@@ -320,17 +324,17 @@ metadata:
   annotations:
     {}
 spec:
-  ingressClassName: gce
+  ingressClassName: "gce"
   tls:
     - hosts:
         - "hostname.example"
-      secretName: hostname-tls
+      secretName: "hostname-tls"
   rules:
     - host: "hostname.example"
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: "/"
+            pathType: "Prefix"
             backend:
               service:
                 name: ci-statefulset
@@ -372,7 +376,6 @@ metadata:
     "helm.sh/hook-weight": "-200"
   namespace: "ci"
 rules:
-
 - apiGroups: [""]
   resources: ["configmaps","events","pods","pods/attach","pods/exec","secrets","services"]
   verbs: ["get","list","watch","create","patch","update","delete"]
@@ -438,10 +441,10 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
         - name: gcpsecrets
           csi:
@@ -450,9 +453,9 @@ spec:
             volumeAttributes:
               secretProviderClass: ci-statefulset
       containers:
-        - name: charts-common
+        - name: ci-statefulset
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           command:
             - /usr/local/bin/python
           args:
@@ -462,8 +465,8 @@ spec:
           volumeMounts:
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
             - name: gcpsecrets
               mountPath: /opt/app/.env
               subPath: .env
@@ -511,10 +514,10 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: app-config
+            name: "app-config"
             items:
-              - key: .env.prod
-                path: .env.prod
+              - key: ".env.prod"
+                path: ".env.prod"
             defaultMode: 420
         - name: gcpsecrets
           csi:
@@ -523,9 +526,9 @@ spec:
             volumeAttributes:
               secretProviderClass: ci-statefulset
       containers:
-        - name: charts-common
+        - name: ci-statefulset
           image: "registry.example.com/app:1.0.0"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "IfNotPresent"
           command:
             - /usr/local/bin/python
           args:
@@ -534,8 +537,8 @@ spec:
           volumeMounts:
             - name: app-config
               readOnly: true
-              mountPath: /var/www/html
-              subPath: .env.prod
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
             - name: gcpsecrets
               mountPath: /opt/app/.env
               subPath: .env
