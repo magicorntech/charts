@@ -33,6 +33,12 @@ global:
     deregistrationTime: 30
     failSeconds: 600
     revisionHistory: 10
+    # DNS resolver ndots override (k8s's own implicit default is 5).
+    # Unset/null -> no dnsConfig emitted at all -> byte-identical render to
+    # before this feature existed. Setting it rolls every workload (pod
+    # template hash changes) and changes DNS resolution behavior -- opt-in,
+    # never defaulted.
+    ndots: null
     nodeSelector: {}
     affinity: {}
     tolerations: []
