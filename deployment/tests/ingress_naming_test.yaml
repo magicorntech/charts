@@ -1,0 +1,160 @@
+suite: ingress naming (deliberate, not a bug)
+# The ingress name is derived from POSITION and LIST LENGTH, not from how
+# many entries are enabled. This is intentional: toggling one entry's
+# `enabled` must never rename another entry's Ingress, because Helm would
+# then delete+recreate it — for an ALB that means a brand new load
+# balancer and real downtime. Do not "fix" this by counting only enabled
+# entries; that would introduce exactly the churn this test exists to
+# prevent. See CLAUDE-plan bug catalogue.
+templates:
+  - charts/charts-common/templates/ingress-aws.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: a single enabled entry gets the bare release name
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: single.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+
+  - it: two entries with the second disabled still names the first RELEASE-NAME-1 (list length, not enabled count)
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-1
+
+  - it: two enabled entries render two documents (RELEASE-NAME-1 and RELEASE-NAME-2)
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb1
+          lbOrder: 100
+          hosts:
+            - host: one.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internal
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb2
+          lbOrder: 200
+          hosts:
+            - host: two.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: two enabled entries — first document is named RELEASE-NAME-1
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb1
+          lbOrder: 100
+          hosts:
+            - host: one.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internal
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb2
+          lbOrder: 200
+          hosts:
+            - host: two.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: RELEASE-NAME-1
+
+  - it: two enabled entries — second document is named RELEASE-NAME-2
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb1
+          lbOrder: 100
+          hosts:
+            - host: one.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internal
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb2
+          lbOrder: 200
+          hosts:
+            - host: two.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: RELEASE-NAME-2

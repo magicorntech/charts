@@ -1,0 +1,101 @@
+suite: rbac (service-account, role, role-binding)
+templates:
+  - charts/charts-common/templates/service-account.yaml
+  - charts/charts-common/templates/role.yaml
+  - charts/charts-common/templates/role-binding.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: enabled renders all three objects
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: charts/charts-common/templates/service-account.yaml
+      - hasDocuments:
+          count: 1
+        template: charts/charts-common/templates/role.yaml
+      - hasDocuments:
+          count: 1
+        template: charts/charts-common/templates/role-binding.yaml
+
+  - it: namespaced access renders Role/RoleBinding with a namespace
+    asserts:
+      - isKind:
+          of: Role
+        template: charts/charts-common/templates/role.yaml
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+        template: charts/charts-common/templates/role.yaml
+      - isKind:
+          of: RoleBinding
+        template: charts/charts-common/templates/role-binding.yaml
+
+  - it: clusterWideAccess renders ClusterRole/ClusterRoleBinding with no namespace
+    set:
+      global.security.serviceAccount.clusterWideAccess: true
+    asserts:
+      - isKind:
+          of: ClusterRole
+        template: charts/charts-common/templates/role.yaml
+      - notExists:
+          path: metadata.namespace
+        template: charts/charts-common/templates/role.yaml
+      - isKind:
+          of: ClusterRoleBinding
+        template: charts/charts-common/templates/role-binding.yaml
+
+  - it: rule defaulting - apiGroups defaults to [""], resources/verbs default to ["*"]
+    set:
+      global.security.serviceAccount.rules:
+        - resources: ["pods"]
+    asserts:
+      - equal:
+          path: rules[0].apiGroups
+          value: [""]
+        template: charts/charts-common/templates/role.yaml
+      - equal:
+          path: rules[0].resources
+          value: ["pods"]
+        template: charts/charts-common/templates/role.yaml
+      - equal:
+          path: rules[0].verbs
+          value: ["*"]
+        template: charts/charts-common/templates/role.yaml
+
+  - it: BUG (B8) - empty rules renders a null rules key, not an empty list
+    set:
+      global.security.serviceAccount.rules: []
+    asserts:
+      - isNullOrEmpty:
+          path: rules
+        template: charts/charts-common/templates/role.yaml
+
+  - it: all three carry the -200 pre-install hook weight
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-200"
+        template: charts/charts-common/templates/service-account.yaml
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-200"
+        template: charts/charts-common/templates/role.yaml
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-200"
+        template: charts/charts-common/templates/role-binding.yaml
+
+  - it: disabled renders nothing at all
+    set:
+      global.security.serviceAccount.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-account.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/role.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/role-binding.yaml

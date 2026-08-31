@@ -1,0 +1,34 @@
+suite: topologySpreadConstraints
+templates:
+  - charts/charts-common-deployment/templates/deployment.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: single constraint gets a labelSelector matching the deployment's own selector
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME
+
+  - it: BUG (B4) - with two constraints, only the LAST one gets a labelSelector; the first is a no-op (matches nothing)
+    set:
+      global.deployment.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+    asserts:
+      - notExists:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[1].labelSelector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME
+
+  - it: empty list omits the key entirely
+    set:
+      global.deployment.topologySpreadConstraints: []
+    asserts:
+      - notExists:
+          path: spec.template.spec.topologySpreadConstraints

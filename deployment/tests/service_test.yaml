@@ -1,0 +1,80 @@
+suite: service (aws/gcp/hcp/datacenter)
+templates:
+  - charts/charts-common/templates/service-aws.yaml
+  - charts/charts-common/templates/service-gcp.yaml
+  - charts/charts-common/templates/service-hcp.yaml
+  - charts/charts-common/templates/service-datacenter.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+# NOT tested here: a user annotation colliding with one of the 9 hardcoded
+# NLB keys (e.g. re-setting aws-load-balancer-type). Today that produces a
+# literal duplicate YAML key and a hard unmarshal error, not "user wins" —
+# there is no real precedence today, just a raw text splice with no
+# collision handling. "User wins" only becomes true, and testable, once
+# Phase 4 replaces the splice with a real `merge (dict) $user $plat`.
+tests:
+  - it: aws + ClusterIP renders no NLB annotations
+    template: charts/charts-common/templates/service-aws.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - notExists:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+
+  - it: aws + LoadBalancer with real annotations renders the 9 NLB keys plus the user's own
+    set:
+      global.service.type: LoadBalancer
+      global.service.annotations:
+        team: platform
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: external
+      - equal:
+          path: metadata.annotations["team"]
+          value: platform
+    template: charts/charts-common/templates/service-aws.yaml
+
+  - it: type None renders ClusterIP with clusterIP None (headless)
+    set:
+      global.service.type: None
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.clusterIP
+          value: None
+    template: charts/charts-common/templates/service-aws.yaml
+
+  - it: disabled service renders nothing on any destination
+    set:
+      global.service.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-aws.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-gcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-hcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-datacenter.yaml
+
+  - it: gcp/hcp/datacenter never emit NLB annotations, only user-supplied ones
+    set:
+      global.destination: gcp
+      global.service.annotations:
+        team: platform
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            team: platform
+    template: charts/charts-common/templates/service-gcp.yaml

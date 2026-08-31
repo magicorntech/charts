@@ -1,0 +1,77 @@
+suite: ingress aws
+templates:
+  - charts/charts-common/templates/ingress-aws.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+# NOT tested here: a liveness probe without httpGet (e.g. an exec probe).
+# ingress-aws.yaml unconditionally dereferences
+# .deployment.liveness.httpGet.path for the ALB healthcheck-path
+# annotation, so today that nil-pointers the whole render (bug B9). The
+# guard that lets this render safely lands in Phase 3 — this suite gets
+# that regression test added then.
+tests:
+  - it: uses the hardcoded alb ingressClassName
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: alb
+
+  - it: derives ALB healthcheck annotations from the liveness probe
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-path"]
+          value: /healthz
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-interval-seconds"]
+          value: "15"
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-timeout-seconds"]
+          value: "5"
+
+  - it: wafId null omits the wafv2 annotation
+    asserts:
+      - notExists:
+          path: metadata.annotations["alb.ingress.kubernetes.io/wafv2-acl-arn"]
+
+  - it: wafId set renders the wafv2 annotation
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: "arn:aws:wafv2:eu-west-1:000000000000:regional/webacl/example/id"
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/wafv2-acl-arn"]
+          value: "arn:aws:wafv2:eu-west-1:000000000000:regional/webacl/example/id"
+
+  - it: backend uses the service.ports.one.outer port
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 80
+
+  - it: at kube 1.25 the backend uses the modern service.name/port.number shape and a real pathType
+    capabilities:
+      majorVersion: 1
+      minorVersion: 25
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME
+      - notExists:
+          path: spec.rules[0].http.paths[0].backend.serviceName

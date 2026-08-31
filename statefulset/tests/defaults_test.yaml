@@ -1,0 +1,85 @@
+suite: bare defaults (no -f at all)
+# B1's permanent regression test for the statefulset umbrella. Unlike the
+# deployment chart's PVC (optional, gated on .enabled), the StatefulSet
+# has no pvc.yaml template at all — its per-pod storage lives inline as
+# volumeClaimTemplates on the StatefulSet object itself and is always
+# present, matching the README's "PVC is mandatory for StatefulSet".
+templates:
+  - charts/charts-common-statefulset/templates/statefulset.yaml
+  - charts/charts-common/templates/service-aws.yaml
+  - charts/charts-common/templates/service-gcp.yaml
+  - charts/charts-common/templates/service-hcp.yaml
+  - charts/charts-common/templates/service-datacenter.yaml
+  - charts/charts-common/templates/ingress-aws.yaml
+  - charts/charts-common/templates/ingress-gcp.yaml
+  - charts/charts-common/templates/ingress-hcp.yaml
+  - charts/charts-common/templates/ingress-datacenter.yaml
+  - charts/charts-common/templates/hpa.yaml
+  - charts/charts-common/templates/cronjobs.yaml
+  - charts/charts-common/templates/migrations.yaml
+  - charts/charts-common/templates/other-prehooks.yaml
+  - charts/charts-common/templates/role.yaml
+  - charts/charts-common/templates/role-binding.yaml
+  - charts/charts-common/templates/service-account.yaml
+  - charts/charts-common/templates/security-group.yaml
+  - charts/charts-common/templates/secrets-gcp.yaml
+tests:
+  - it: renders exactly the StatefulSet, nothing else
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - isKind:
+          of: StatefulSet
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-aws.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-gcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-hcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-datacenter.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-aws.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-gcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-hcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-datacenter.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/hpa.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/cronjobs.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/migrations.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/other-prehooks.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/role.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/role-binding.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-account.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/security-group.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/secrets-gcp.yaml

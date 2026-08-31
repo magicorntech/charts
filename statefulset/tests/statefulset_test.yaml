@@ -1,0 +1,72 @@
+suite: statefulset
+templates:
+  - charts/charts-common-statefulset/templates/statefulset.yaml
+  - charts/charts-common/templates/service-aws.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: BUG (B5) - serviceName points at a "-headless" Service that no template actually creates
+    asserts:
+      - equal:
+          path: spec.serviceName
+          value: RELEASE-NAME-headless
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      # the one Service this chart does render (below) is never named
+      # "-headless" — stable pod DNS is broken until Phase 5c adds a real
+      # headless Service.
+
+  - it: the one Service this chart does render is named plainly, not "-headless"
+    set:
+      global.service.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+        template: charts/charts-common/templates/service-aws.yaml
+
+  - it: hardcoded StatefulSet-specific spec fields
+    asserts:
+      - equal:
+          path: spec.podManagementPolicy
+          value: OrderedReady
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - equal:
+          path: spec.updateStrategy.type
+          value: RollingUpdate
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - equal:
+          path: spec.updateStrategy.rollingUpdate.partition
+          value: 0
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+
+  - it: volumeClaimTemplates carries the pvc size/storageClass, always ReadWriteOnce
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: storage
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.accessModes
+          value: ["ReadWriteOnce"]
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 10Gi
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: gp2
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+
+  - it: the storage volumeMount is always present, unlike the deployment chart's optional pvc mount
+    set:
+      global.configMap.enabled: false
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: storage
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /data
+        template: charts/charts-common-statefulset/templates/statefulset.yaml

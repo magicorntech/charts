@@ -1,0 +1,80 @@
+suite: deployment
+templates:
+  - charts/charts-common-deployment/templates/deployment.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: replicas comes from replicaCount when autoscaling is off
+    set:
+      global.autoscaling.enabled: false
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 2
+
+  - it: replicas is omitted when autoscaling is on
+    asserts:
+      - notExists:
+          path: spec.replicas
+
+  - it: strategy passes through verbatim
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+      - equal:
+          path: spec.strategy.rollingUpdate.maxSurge
+          value: 1
+
+  - it: readiness and liveness probes render when set
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+
+  - it: container ports render only when service.enabled is true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: one
+            containerPort: 80
+            protocol: TCP
+
+  - it: no container ports when service is disabled
+    set:
+      global.service.enabled: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].ports
+
+  - it: terminationGracePeriodSeconds mirrors deregistrationTime
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 60
+
+  - it: progressDeadlineSeconds and revisionHistoryLimit come from failSeconds/revisionHistory
+    asserts:
+      - equal:
+          path: spec.progressDeadlineSeconds
+          value: 600
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 25
+
+  - it: imagePullSecrets omitted when empty
+    set:
+      global.deployment.image.imagePullSecrets: []
+    asserts:
+      - notExists:
+          path: spec.template.spec.imagePullSecrets
+
+  - it: imagePullSecrets present when set
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: regcred

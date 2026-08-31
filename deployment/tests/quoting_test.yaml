@@ -1,0 +1,35 @@
+suite: quoting
+templates:
+  - charts/charts-common/templates/cronjobs.yaml
+  - charts/charts-common/templates/service-aws.yaml
+  - charts/charts-common/templates/security-group.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: BUG (B10) - a numeric-looking configMap.name is re-typed as an integer on re-parse, not kept as a string
+    set:
+      global.configMap.name: "123456"
+    asserts:
+      - isType:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].configMap.name
+          type: int
+    template: charts/charts-common/templates/cronjobs.yaml
+
+  - it: service.type renders correctly today (ClusterIP isn't YAML-ambiguous, so the missing quote is latent, not currently broken)
+    asserts:
+      - isType:
+          path: spec.type
+          type: string
+      - equal:
+          path: spec.type
+          value: ClusterIP
+    template: charts/charts-common/templates/service-aws.yaml
+
+  - it: BUG (B10) - a numeric-looking securityGroupId is re-typed as a number, not kept as a string
+    set:
+      global.security.sgPolicy.securityGroupId: "0123456789"
+    asserts:
+      - isType:
+          path: spec.securityGroups.groupIds[0]
+          type: float64
+    template: charts/charts-common/templates/security-group.yaml

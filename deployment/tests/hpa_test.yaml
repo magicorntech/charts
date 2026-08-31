@@ -1,0 +1,66 @@
+suite: hpa
+templates:
+  - charts/charts-common/templates/hpa.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: disabled autoscaling renders nothing
+    set:
+      global.autoscaling.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: CPU-only target renders exactly one metric
+    set:
+      global.autoscaling.targetMemoryUtilizationPercentage: null
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 1
+      - equal:
+          path: spec.metrics[0].type
+          value: Resource
+      - equal:
+          path: spec.metrics[0].resource.name
+          value: cpu
+
+  - it: memory-only target renders exactly one metric
+    set:
+      global.autoscaling.targetCPUUtilizationPercentage: null
+      global.autoscaling.targetMemoryUtilizationPercentage: 80
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 1
+      - equal:
+          path: spec.metrics[0].resource.name
+          value: memory
+
+  - it: both CPU and memory targets render two metrics
+    set:
+      global.autoscaling.targetMemoryUtilizationPercentage: 80
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 2
+
+  - it: BUG (B7) - neither target set renders an empty metrics key, which the real API server rejects (HPA requires >=1 metric)
+    set:
+      global.autoscaling.targetCPUUtilizationPercentage: null
+      global.autoscaling.targetMemoryUtilizationPercentage: null
+    asserts:
+      - isNullOrEmpty:
+          path: spec.metrics
+
+  - it: DELIBERATE - scaleTargetRef.kind is hardcoded Deployment, even in the deployment umbrella (unremarkable here; see the statefulset suite for why this matters)
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+
+  - it: passes the behavior block through verbatim
+    asserts:
+      - equal:
+          path: spec.behavior.scaleUp.stabilizationWindowSeconds
+          value: 60

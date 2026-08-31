@@ -114,6 +114,46 @@ cmd_kubeconform() {
   return "$overall_status"
 }
 
+cmd_notes() {
+  echo "== notes =="
+  # helm-unittest cannot target NOTES.txt at all (not a Kind it renders),
+  # and `helm template` skips it entirely — only `helm install --dry-run`
+  # exercises it. --render-subchart-notes is required today because
+  # NOTES.txt lives in the two workload subcharts, not the umbrella
+  # itself, and Helm doesn't show subchart notes by default (a real gap
+  # fixed in Phase 4, not yet).
+  local out
+  out="$(helm install ci-deployment-notes deployment -f ci/scenarios/deployment/aws-full.yaml --dry-run=client --render-subchart-notes)"
+  echo "$out" | grep -q "^  http://hostname.example/$" \
+    || { echo "FAIL: deployment NOTES.txt did not render the expected http:// URL"; echo "$out"; exit 1; }
+
+  out="$(helm install ci-datacenter-notes deployment -f ci/scenarios/deployment/datacenter-full.yaml --dry-run=client --render-subchart-notes)"
+  echo "$out" | grep -q "^  https://hostname.example/$" \
+    || { echo "FAIL: deployment NOTES.txt did not render https:// for a tls-enabled ingress"; echo "$out"; exit 1; }
+
+  out="$(helm install ci-statefulset-notes statefulset -f ci/scenarios/statefulset/aws-full.yaml --dry-run=client --render-subchart-notes)"
+  echo "$out" | grep -q "ci-statefulset-notes-0 8080:80" \
+    || { echo "FAIL: statefulset NOTES.txt missing its ordinal-pod port-forward example"; echo "$out"; exit 1; }
+}
+
+cmd_destination_guard() {
+  echo "== destination-guard =="
+  # helm-unittest's `failedTemplate` assertion can't catch this: schema
+  # validation happens before template rendering even starts, so an
+  # invalid `global.destination` crashes the whole unittest run rather
+  # than producing an assertable per-test failure. Shell-level check
+  # instead, same fallback shape as the NOTES.txt check above.
+  for chart in deployment statefulset; do
+    if helm template "ci-$chart" "$chart" --set global.destination=azure > /dev/null 2>/tmp/destination-guard.err; then
+      echo "FAIL: $chart accepted global.destination=azure — the schema should have rejected it"
+      exit 1
+    fi
+    grep -q "value must be one of 'aws', 'gcp', 'hcp', 'datacenter'" /tmp/destination-guard.err \
+      || { echo "FAIL: $chart rejected the bad destination for the wrong reason:"; cat /tmp/destination-guard.err; exit 1; }
+  done
+  rm -f /tmp/destination-guard.err
+}
+
 cmd_package_check() {
   echo "== package-check =="
   local pkgs=("$@")
@@ -173,6 +213,8 @@ cmd_all() {
   cmd_unittest
   cmd_render
   cmd_kubeconform
+  cmd_notes
+  cmd_destination_guard
   cmd_package_check
 }
 
@@ -182,10 +224,12 @@ case "${1:-}" in
   unittest)       cmd_unittest ;;
   render)         cmd_render ;;
   kubeconform)    cmd_kubeconform ;;
+  notes)          cmd_notes ;;
+  destination-guard) cmd_destination_guard ;;
   package-check)  shift; cmd_package_check "$@" ;;
   all)            cmd_all ;;
   *)
-    echo "usage: $0 <deps|lint|unittest|render|kubeconform|package-check|all>" >&2
+    echo "usage: $0 <deps|lint|unittest|render|kubeconform|notes|package-check|all>" >&2
     exit 2
     ;;
 esac

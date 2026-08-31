@@ -1,0 +1,90 @@
+suite: cronjobs
+templates:
+  - charts/charts-common/templates/cronjobs.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: only the enabled entry renders (cron1 enabled, cron2 disabled)
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-cron1
+
+  - it: BUG (B3) - a multi-element command list gets joined into a single string element, not toYaml'd like args is
+    asserts:
+      - lengthEqual:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          count: 1
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command[0]
+          value: "/usr/local/bin/php artisan schedule:run"
+      - lengthEqual:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          count: 1
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          value: --no-interaction
+
+  - it: BUG (B6) - serviceAccountName renders empty (not omitted) when the ServiceAccount is disabled
+    set:
+      global.security.serviceAccount.enabled: false
+    asserts:
+      - isNullOrEmpty:
+          path: spec.jobTemplate.spec.template.spec.serviceAccountName
+
+  - it: serviceAccountName is set when the ServiceAccount is enabled
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.serviceAccountName
+          value: RELEASE-NAME
+
+  - it: per-job resources, concurrencyPolicy and restartPolicy pass through
+    asserts:
+      - equal:
+          path: spec.concurrencyPolicy
+          value: Forbid
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.restartPolicy
+          value: OnFailure
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].resources.requests.cpu
+          value: 50m
+
+  - it: configMap volume and mount are present when configMap is enabled
+    asserts:
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: app-config
+            configMap:
+              name: app-config
+              items:
+                - key: .env.prod
+                  path: .env.prod
+              defaultMode: 420
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          content:
+            name: app-config
+            readOnly: true
+            mountPath: /var/www/html
+            subPath: .env.prod
+
+  - it: no cronjobs enabled renders nothing
+    set:
+      global.cronjobs:
+        - name: cron1
+          enabled: false
+          schedule: "0 2 * * *"
+          command: []
+          args: []
+          resources: {}
+          failedJobsHistoryLimit: 3
+          successfulJobsHistoryLimit: 5
+          concurrencyPolicy: Forbid
+          restartPolicy: OnFailure
+    asserts:
+      - hasDocuments:
+          count: 0

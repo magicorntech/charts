@@ -1,0 +1,49 @@
+suite: security group (aws only)
+templates:
+  - charts/charts-common/templates/security-group.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: aws + enabled renders a SecurityGroupPolicy
+    asserts:
+      - isAPIVersion:
+          of: vpcresources.k8s.aws/v1beta1
+      - isKind:
+          of: SecurityGroupPolicy
+      - equal:
+          path: spec.securityGroups.groupIds[0]
+          value: sg-0123456789abcdef
+      - equal:
+          path: spec.serviceAccountSelector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME
+
+  - it: aws + disabled renders nothing
+    set:
+      global.security.sgPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: NEGATIVE - gcp + enabled renders nothing, sgPolicy is aws-only
+    set:
+      global.destination: gcp
+      global.security.sgPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: NEGATIVE - hcp + enabled renders nothing
+    set:
+      global.destination: hcp
+      global.security.sgPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: NEGATIVE - datacenter + enabled renders nothing
+    set:
+      global.destination: datacenter
+      global.security.sgPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0

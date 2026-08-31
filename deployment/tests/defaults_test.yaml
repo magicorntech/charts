@@ -1,0 +1,89 @@
+suite: bare defaults (no -f at all)
+# B1's permanent regression test: this repo shipped with NO values.yaml
+# at all until Phase 1, so every unguarded .Values.global.X deref
+# nil-pointered on a bare `helm template`. With values.yaml's defaults
+# alone (destination: aws, every *.enabled: false), only the Deployment
+# itself should render — nothing else.
+templates:
+  - charts/charts-common-deployment/templates/deployment.yaml
+  - charts/charts-common-deployment/templates/pvc.yaml
+  - charts/charts-common/templates/service-aws.yaml
+  - charts/charts-common/templates/service-gcp.yaml
+  - charts/charts-common/templates/service-hcp.yaml
+  - charts/charts-common/templates/service-datacenter.yaml
+  - charts/charts-common/templates/ingress-aws.yaml
+  - charts/charts-common/templates/ingress-gcp.yaml
+  - charts/charts-common/templates/ingress-hcp.yaml
+  - charts/charts-common/templates/ingress-datacenter.yaml
+  - charts/charts-common/templates/hpa.yaml
+  - charts/charts-common/templates/cronjobs.yaml
+  - charts/charts-common/templates/migrations.yaml
+  - charts/charts-common/templates/other-prehooks.yaml
+  - charts/charts-common/templates/role.yaml
+  - charts/charts-common/templates/role-binding.yaml
+  - charts/charts-common/templates/service-account.yaml
+  - charts/charts-common/templates/security-group.yaml
+  - charts/charts-common/templates/secrets-gcp.yaml
+tests:
+  - it: renders exactly the Deployment, nothing else
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: charts/charts-common-deployment/templates/deployment.yaml
+      - isKind:
+          of: Deployment
+        template: charts/charts-common-deployment/templates/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common-deployment/templates/pvc.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-aws.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-gcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-hcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-datacenter.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-aws.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-gcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-hcp.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/ingress-datacenter.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/hpa.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/cronjobs.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/migrations.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/other-prehooks.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/role.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/role-binding.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/service-account.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/security-group.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/secrets-gcp.yaml

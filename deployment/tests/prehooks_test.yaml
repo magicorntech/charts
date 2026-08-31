@@ -1,0 +1,87 @@
+suite: prehooks (migrations + other-prehooks)
+templates:
+  - charts/charts-common/templates/migrations.yaml
+  - charts/charts-common/templates/other-prehooks.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  # These weight assertions double as the stale-vendored-.tgz tripwire: an
+  # old committed tarball had migrations at "-1" and other-prehooks at
+  # "-2" (inverted order) with no hook annotations at all on several
+  # RBAC/secrets objects — if a stale artifact ever gets rendered instead
+  # of source, this is the first thing to go red.
+  - it: migrations runs before other-prehooks (hook-weight -100 vs -90)
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-100"
+        template: charts/charts-common/templates/migrations.yaml
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-90"
+        template: charts/charts-common/templates/other-prehooks.yaml
+
+  - it: both are pre-install,pre-upgrade hooks with hook-succeeded delete policy
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: pre-install,pre-upgrade
+        template: charts/charts-common/templates/migrations.yaml
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: hook-succeeded
+        template: charts/charts-common/templates/migrations.yaml
+
+  - it: migrations job name and command/args
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-migrations
+        template: charts/charts-common/templates/migrations.yaml
+      - equal:
+          path: spec.template.spec.containers[0].command
+          value: ["/usr/local/bin/python"]
+        template: charts/charts-common/templates/migrations.yaml
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value: ["manage.py", "migrate", "--noinput"]
+        template: charts/charts-common/templates/migrations.yaml
+
+  - it: BUG (B11) - the container name is the chart name, not the release name
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: charts-common
+        template: charts/charts-common/templates/migrations.yaml
+
+  - it: both disabled renders neither job
+    set:
+      global.prehooks.dbMigrations.enabled: false
+      global.prehooks.otherPrehooks.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/migrations.yaml
+      - hasDocuments:
+          count: 0
+        template: charts/charts-common/templates/other-prehooks.yaml
+
+  - it: gcp secrets volume mounts into the migrations job when destination is gcp and secrets are enabled
+    set:
+      global.destination: gcp
+      global.secrets.enabled: true
+      global.secrets.mountPath: /opt/app
+      global.secrets.data:
+        - resourceName: "projects/example/secrets/example/versions/latest"
+          fileName: ".env"
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: gcpsecrets
+            csi:
+              driver: secrets-store-gke.csi.k8s.io
+              readOnly: true
+              volumeAttributes:
+                secretProviderClass: RELEASE-NAME
+        template: charts/charts-common/templates/migrations.yaml
