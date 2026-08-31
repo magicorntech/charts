@@ -1,0 +1,213 @@
+suite: rollout (P7 — Argo Rollouts, deployment chart only)
+templates:
+  - templates/deployment.yaml
+  - templates/rollout.yaml
+  - templates/rollout-services.yaml
+  - templates/service.yaml
+  - templates/hpa.yaml
+  - templates/ingress.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: unset by default — no Rollout, no rollout Services, plain Deployment still renders
+    set:
+      global.autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: templates/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/rollout.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/rollout-services.yaml
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+        template: templates/hpa.yaml
+
+  - it: both deployment.enabled and rollout.enabled true fails loudly (mutual exclusion)
+    # Restricted to rollout.yaml: helm's own template evaluation aborts the
+    # WHOLE render on the first `fail()` it hits (deployment.yaml's own
+    # charts-common.deployment carries the identical guard call too, and
+    # would fail equally if it happened to evaluate first) -- asserting
+    # against every declared template here would just assert on whichever
+    # one happens to run first, which isn't something to pin down.
+    set:
+      global.rollout.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "global.deployment.enabled and global.rollout.enabled cannot both be true — pick exactly one workload controller"
+        template: templates/rollout.yaml
+
+  - it: rollout.enabled with deployment.enabled false renders a Rollout instead of a Deployment
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/deployment.yaml
+      - hasDocuments:
+          count: 1
+        template: templates/rollout.yaml
+      - equal:
+          path: kind
+          value: Rollout
+        template: templates/rollout.yaml
+      - equal:
+          path: apiVersion
+          value: argoproj.io/v1alpha1
+        template: templates/rollout.yaml
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/app:1.0.0
+        template: templates/rollout.yaml
+
+  - it: rollout.enabled switches the HPA's scaleTargetRef to Rollout
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+      global.autoscaling.enabled: true
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.apiVersion
+          value: argoproj.io/v1alpha1
+        template: templates/hpa.yaml
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Rollout
+        template: templates/hpa.yaml
+
+  - it: canary strategy defaults to a -preview Service and doesn't touch the main Service
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+    asserts:
+      - equal:
+          path: spec.strategy.canary.canaryService
+          value: RELEASE-NAME-preview
+        template: templates/rollout.yaml
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-preview
+        template: templates/rollout-services.yaml
+      - hasDocuments:
+          count: 1
+        template: templates/service.yaml
+
+  - it: canary createCanaryService=false renders no preview Service and no canaryService field
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+      global.rollout.canary.createCanaryService: false
+    asserts:
+      - notExists:
+          path: spec.strategy.canary.canaryService
+        template: templates/rollout.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/rollout-services.yaml
+
+  - it: FIXED (§B6 bug 2) - ALB trafficRouting targets the ingress's real computed name, not a hardcoded bare release name
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+      global.rollout.canary.trafficRouting.enabled: true
+    asserts:
+      # This fixture has 2 configured ingress entries -> the real name is
+      # RELEASE-NAME-1, never bare RELEASE-NAME (which no Ingress object
+      # in this render actually has).
+      - equal:
+          path: spec.strategy.canary.trafficRouting.alb.ingress
+          value: RELEASE-NAME-1
+        template: templates/rollout.yaml
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-1
+        template: templates/ingress.yaml
+
+  - it: an explicit alb.ingressName override wins over the auto-resolved first ingress
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+      global.rollout.canary.trafficRouting.enabled: true
+      global.rollout.canary.trafficRouting.alb.ingressName: some-other-ingress
+    asserts:
+      - equal:
+          path: spec.strategy.canary.trafficRouting.alb.ingress
+          value: some-other-ingress
+        template: templates/rollout.yaml
+
+  - it: blueGreen strategy skips the main Service and creates active+preview Services
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+      global.rollout.strategyType: blueGreen
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/service.yaml
+      - hasDocuments:
+          count: 2
+        template: templates/rollout-services.yaml
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-active
+        template: templates/rollout-services.yaml
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-preview
+        template: templates/rollout-services.yaml
+        documentIndex: 1
+      - equal:
+          path: spec.strategy.blueGreen.activeService
+          value: RELEASE-NAME-active
+        template: templates/rollout.yaml
+      - equal:
+          path: spec.strategy.blueGreen.previewService
+          value: RELEASE-NAME-preview
+        template: templates/rollout.yaml
+
+  - it: an ingress entry's rolloutService=preview routes its rule to the preview Service, not the plain release name
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+      # Full-list override, not a bracket-indexed global.ingress[0].X set:
+      # — bracket-indexed set: paths corrupt the values tree under
+      # helm-unittest's deep-merge (see this repo's own established
+      # gotcha, documented in every other ingress test in this file).
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          rolloutService: preview
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-preview
+        template: templates/ingress.yaml
+
+  - it: an ingress entry with no rolloutService still routes to the plain release name, unchanged from before P7
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME
+        template: templates/ingress.yaml

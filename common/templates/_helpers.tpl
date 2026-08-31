@@ -66,3 +66,32 @@ Returns "" (falsy) otherwise, so callers can `{{- if include ... }}`.
 true
 {{- end -}}
 {{- end -}}
+
+{{/*
+Mutual-exclusion guard for the Deployment/Rollout workload choice (P7).
+Both controllers targeting the same selectorLabels would fight over the
+same pods — fail loudly at render time instead of silently rendering
+both (or, worse, silently rendering neither, if some future refactor
+guarded the wrong way). Called once from charts-common.deployment's own
+entry point; deliberately not called from a Rollout entry point too,
+since that path is deployment-chart-only (P7's own StatefulSet fail
+guard is the statefulset chart's own charts-common.rolloutUnsupported).
+*/}}
+{{- define "charts-common.validateWorkloadMode" -}}
+{{- if and .Values.global.deployment.enabled .Values.global.rollout.enabled -}}
+{{- fail "global.deployment.enabled and global.rollout.enabled cannot both be true — pick exactly one workload controller" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Statefulset has no Rollout equivalent (P7 is deployment-only — Argo
+Rollouts has no StatefulSet controller). Called from the statefulset
+chart's own statefulset.yaml wrapper so a misconfigured
+global.rollout.enabled=true fails loudly and immediately, rather than
+silently doing nothing on a chart where the key has no effect at all.
+*/}}
+{{- define "charts-common.rolloutUnsupported" -}}
+{{- if .Values.global.rollout.enabled -}}
+{{- fail "global.rollout.enabled has no effect on the statefulset chart — Argo Rollouts has no StatefulSet controller" -}}
+{{- end -}}
+{{- end -}}

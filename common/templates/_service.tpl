@@ -26,7 +26,20 @@ lines were pure copy-paste. Takes the plain root context.
 {{- define "charts-common.service" -}}
 {{- $root := . -}}
 {{- $dest := include "charts-common.destination" $root -}}
-{{- if $root.Values.global.service.enabled }}
+{{- $skipMainService := false -}}
+{{- if and $root.Values.global.rollout.enabled (eq $root.Values.global.rollout.strategyType "blueGreen") -}}
+{{/*
+FIXED (§B6, from the source branch's own 1a68fd4 fix): the main Service
+is skipped for blueGreen only — never for canary's own createCanaryService,
+which the buggy 50ac9ec shape on that branch also skipped it for. A
+canary rollout's main Service must keep pointing at the whole
+stable+canary pod set the entire time (that's how Argo shifts weighted
+traffic between them); only blueGreen genuinely replaces it with its own
+active/preview pair, since blueGreen has no single "current" service.
+*/}}
+{{- $skipMainService = true -}}
+{{- end -}}
+{{- if and $root.Values.global.service.enabled (not $skipMainService) }}
 apiVersion: v1
 kind: Service
 metadata:

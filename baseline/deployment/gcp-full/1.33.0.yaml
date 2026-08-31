@@ -85,7 +85,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: ci-deployment
-
       containers:
         - name: ci-deployment
           image: "registry.example.com/app:1.0.0"

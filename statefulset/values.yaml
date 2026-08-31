@@ -16,6 +16,11 @@ global:
   destination: aws
 
   deployment:
+    # Whether the Deployment workload object renders at all. Default true
+    # (byte-identical to before P7 existed) -- flip to false only together
+    # with rollout.enabled: true (mutually exclusive, enforced by a `fail`
+    # at render time if both are true).
+    enabled: true
     image:
       uri: ""
       pullPolicy: IfNotPresent
@@ -42,6 +47,15 @@ global:
     affinity: {}
     tolerations: []
     topologySpreadConstraints: []
+
+  # Argo Rollouts has no StatefulSet controller -- this key exists here
+  # only so the values contract stays documented identically across all
+  # three charts (see common/values.yaml and deployment/values.yaml for
+  # the real, deployment-chart-only rollout.* schema). Setting this true
+  # on the statefulset chart fails the render immediately (see
+  # charts-common.rolloutUnsupported), rather than silently doing nothing.
+  rollout:
+    enabled: false
 
   service:
     enabled: false

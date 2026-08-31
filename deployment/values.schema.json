@@ -59,7 +59,8 @@
               "wafId": { "type": ["string", "null"] },
               "listenPorts": { "type": "string", "enum": ["http", "https", "both"] },
               "sslRedirect": { "type": "boolean" },
-              "healthcheckPath": { "type": "string" }
+              "healthcheckPath": { "type": "string" },
+              "rolloutService": { "type": "string", "enum": ["", "preview", "active"] }
             }
           }
         },

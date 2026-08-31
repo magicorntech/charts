@@ -1,4 +1,5 @@
 {{- define "charts-common.statefulset" -}}
+{{- include "charts-common.rolloutUnsupported" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

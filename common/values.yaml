@@ -14,6 +14,11 @@ global:
   destination: aws
 
   deployment:
+    # Whether the Deployment workload object renders at all. Default true
+    # (byte-identical to before P7 existed) -- flip to false only together
+    # with rollout.enabled: true (mutually exclusive, enforced by a `fail`
+    # at render time if both are true).
+    enabled: true
     image:
       uri: ""
       pullPolicy: IfNotPresent
@@ -41,6 +46,56 @@ global:
     affinity: {}
     tolerations: []
     topologySpreadConstraints: []
+
+  # Argo Rollouts (P7) -- deployment.yaml's alternative, mutually exclusive
+  # with the Deployment above. Off by default; enabling it renders a
+  # Rollout instead of a Deployment (see charts-common.validateWorkloadMode
+  # for the mutual-exclusion guard) with the exact same pod template, plus
+  # HPA/Ingress wiring that follows it automatically once enabled.
+  rollout:
+    enabled: false
+    # "canary" or "blueGreen".
+    strategyType: canary
+    canary:
+      maxSurge: null
+      maxUnavailable: null
+      # Creates a preview/canary Service scoped to canary pods only,
+      # named <release>-preview by default (override via canaryServiceName).
+      createCanaryService: true
+      canaryServiceName: ""
+      steps: []
+      trafficRouting:
+        enabled: false
+        # alb, istio, or nginx.
+        type: alb
+        alb:
+          # Which configured global.ingress[] entry's own computed name
+          # (see charts-common.ingress.name) Argo should manage traffic
+          # weighting on. Empty -> the first configured ingress entry
+          # (index 0) -- the common case, since a canary rollout backed by
+          # more than one ingress is rare enough that the simple default
+          # would otherwise silently target the wrong one. Set this
+          # explicitly whenever more than one ingress entry is configured.
+          ingressName: ""
+      analysis:
+        enabled: false
+        templateName: ""
+        args: []
+    blueGreen:
+      activeService: ""
+      previewService: ""
+      autoPromotionEnabled: true
+      autoPromotionSeconds: null
+      scaleDownDelaySeconds: null
+      previewReplicaCount: null
+      analysis:
+        enabled: false
+        templateName: ""
+        args: []
+    # Same meaning as deployment.revisionHistory above, kept as its own
+    # field (not shared) since a Rollout and a Deployment are never both
+    # active at once -- there is nothing to keep in sync.
+    revisionHistory: 10
 
   service:
     enabled: false

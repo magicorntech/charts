@@ -79,7 +79,6 @@ spec:
         - name: storage
           persistentVolumeClaim:
             claimName: ci-deployment-pvc
-
       containers:
         - name: ci-deployment
           image: "registry.example.com/app:1.0.0"

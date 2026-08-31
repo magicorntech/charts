@@ -64,6 +64,43 @@ kubernetes.io/elb.client_timeout: {{ $ingress.idleTimeout | quote }}
 {{- end -}}
 
 {{/*
+Resolves an Ingress rule's backend service name — the plain release name,
+unless P7's Argo Rollouts is active AND this specific
+global.ingress[] entry opted in via `rolloutService` (empty by default —
+an ingress entry not routing rollout traffic keeps pointing at the plain
+release-named Service, same as before P7 existed). Dict: {root, ingress}.
+Ported from the source branch's own modern (k8s >=1.19 `service:`, not
+the legacy `serviceName:`) shape only — the legacy branch is dead code
+below this chart's own 1.25+ floor, same reasoning as charts-common.ingress
+itself already dropping it.
+*/}}
+{{- define "charts-common.ingress.rules.serviceName" -}}
+{{- $root := .root -}}
+{{- $ingress := .ingress -}}
+{{- if and $root.Values.global.rollout.enabled $ingress.rolloutService -}}
+  {{- if eq $root.Values.global.rollout.strategyType "canary" -}}
+    {{- if eq $ingress.rolloutService "preview" -}}
+{{- $root.Values.global.rollout.canary.canaryServiceName | default (printf "%s-preview" (include "charts-common.name" $root)) -}}
+    {{- else -}}
+{{- include "charts-common.name" $root -}}
+    {{- end -}}
+  {{- else if eq $root.Values.global.rollout.strategyType "blueGreen" -}}
+    {{- if eq $ingress.rolloutService "active" -}}
+{{- $root.Values.global.rollout.blueGreen.activeService | default (printf "%s-active" (include "charts-common.name" $root)) -}}
+    {{- else if eq $ingress.rolloutService "preview" -}}
+{{- $root.Values.global.rollout.blueGreen.previewService | default (printf "%s-preview" (include "charts-common.name" $root)) -}}
+    {{- else -}}
+{{- include "charts-common.name" $root -}}
+    {{- end -}}
+  {{- else -}}
+{{- include "charts-common.name" $root -}}
+  {{- end -}}
+{{- else -}}
+{{- include "charts-common.name" $root -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 The rules: block. Identical across all 4 destinations except hcp's
 per-path `property:` block. Dict: {root, ingress, dest}. k8s 1.25+ only
 (the pre-1.18/1.19 semverCompare branches this repo carried are gone —
@@ -83,7 +120,7 @@ dead code below this chart's own README-declared floor).
         {{- end }}
         backend:
           service:
-            name: {{ include "charts-common.name" $root }}
+            name: {{ include "charts-common.ingress.rules.serviceName" (dict "root" $root "ingress" $ingress) }}
             port:
               number: {{ $root.Values.global.service.ports.one.outer }}
         {{- if eq $.dest "hcp" }}

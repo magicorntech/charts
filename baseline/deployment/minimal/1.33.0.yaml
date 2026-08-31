@@ -60,7 +60,6 @@ spec:
     spec:
       securityContext:
         {}
-
       containers:
         - name: ci-deployment
           image: "registry.example.com/app:1.0.0"
