@@ -9,6 +9,12 @@ whole list).
 */}}
 {{- define "charts-common.podSpecTail" -}}
 dnsPolicy: ClusterFirst
+{{- if .Values.global.deployment.ndots }}
+dnsConfig:
+  options:
+    - name: ndots
+      value: {{ .Values.global.deployment.ndots | toString | quote }}
+{{- end }}
 {{- with .Values.global.deployment.nodeSelector }}
 nodeSelector:
   {{- toYaml . | nindent 2 }}

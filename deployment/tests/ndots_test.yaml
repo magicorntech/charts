@@ -1,0 +1,67 @@
+suite: ndots (P5 — optional pod dnsConfig override)
+templates:
+  - templates/deployment.yaml
+  - templates/cronjobs.yaml
+  - templates/migrations.yaml
+  - templates/other-prehooks.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: unset by default — no dnsConfig anywhere, render is untouched
+    set:
+      global.prehooks.otherPrehooks.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.dnsConfig
+        template: templates/deployment.yaml
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.dnsConfig
+        template: templates/cronjobs.yaml
+      - notExists:
+          path: spec.template.spec.dnsConfig
+        template: templates/migrations.yaml
+      - notExists:
+          path: spec.template.spec.dnsConfig
+        template: templates/other-prehooks.yaml
+
+  - it: NEW (P5) - set global.deployment.ndots renders dnsConfig.options[0] on all four targets
+    set:
+      global.deployment.ndots: 2
+      global.prehooks.otherPrehooks.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "2"
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "2"
+        template: templates/cronjobs.yaml
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "2"
+        template: templates/migrations.yaml
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "2"
+        template: templates/other-prehooks.yaml
+
+  - it: NEW (P5) - migrations/other-prehooks never gain a dnsPolicy line (master never had one, unlike deployment/cronjobs)
+    set:
+      global.deployment.ndots: 2
+      global.prehooks.otherPrehooks.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.dnsPolicy
+        template: templates/migrations.yaml
+      - notExists:
+          path: spec.template.spec.dnsPolicy
+        template: templates/other-prehooks.yaml

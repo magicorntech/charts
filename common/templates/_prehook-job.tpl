@@ -41,6 +41,12 @@ spec:
       {{- with include "charts-common.serviceAccountName" $root }}
       serviceAccountName: {{ . }}
       {{- end }}
+      {{- if $root.Values.global.deployment.ndots }}
+      dnsConfig:
+        options:
+          - name: ndots
+            value: {{ $root.Values.global.deployment.ndots | toString | quote }}
+      {{- end }}
       restartPolicy: Never
       {{- if or $root.Values.global.configMap.enabled (include "charts-common.gcpSecretsEnabled" $root) }}
       volumes:
