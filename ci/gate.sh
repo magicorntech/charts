@@ -42,11 +42,15 @@ cmd_unittest() {
   helm_ver="$(helm version --template '{{.Version}}' 2>/dev/null || echo unknown)"
   # --with-subchart=false + explicit source dirs: the plugin's default
   # (true) collects suites from the vendored copies under */charts/, which
-  # .helmignore has just stripped tests/ out of. Naming the 5 source chart
-  # dirs directly means every suite is collected from source, exactly once.
+  # .helmignore has just stripped tests/ out of. Naming the 2 umbrella
+  # chart dirs directly means every suite is collected from source, exactly
+  # once. `common` (the library chart, post-Phase-4) has no test suites of
+  # its own -- every one of its `define`s is only exercised indirectly,
+  # through the two umbrellas' own tests, and helm-unittest can't render a
+  # `type: library` chart standalone anyway.
   helm unittest --with-subchart=false \
     -t JUnit -o "$DIST_DIR/reports/unittest-${helm_ver}.xml" \
-    common common-deployment common-statefulset deployment statefulset
+    deployment statefulset
 }
 
 cmd_render() {
@@ -138,10 +142,10 @@ cmd_notes() {
   echo "== notes =="
   # helm-unittest cannot target NOTES.txt at all (not a Kind it renders),
   # and `helm template` skips it entirely — only `helm install --dry-run`
-  # exercises it. --render-subchart-notes is required today because
-  # NOTES.txt lives in the two workload subcharts, not the umbrella
-  # itself, and Helm doesn't show subchart notes by default (a real gap
-  # fixed in Phase 4, not yet).
+  # exercises it. Since Phase 4, NOTES.txt lives directly in each
+  # umbrella's own templates/ (no longer a subchart's), so it renders by
+  # default -- --render-subchart-notes is kept anyway, harmlessly, in case
+  # a future subchart ever grows its own notes again.
   local out
   out="$(helm install ci-deployment-notes deployment -f ci/scenarios/deployment/aws-full.yaml --dry-run=client --render-subchart-notes)"
   echo "$out" | grep -q "^  http://hostname.example/$" \
@@ -183,10 +187,17 @@ cmd_exec_probe_guard() {
   # layer already populated without collapsing the parent map to nil.
   # Uses a dedicated fixture with no httpGet key from the start instead.
   local out
-  out="$(helm template ci-exec-probe deployment -f ci/scenarios/deployment/exec-probe.yaml -s charts/charts-common/templates/ingress-aws.yaml)" \
-    || { echo "FAIL: exec-probe liveness nil-pointered the ingress-aws.yaml render (regression of B9)"; exit 1; }
-  echo "$out" | grep -q 'alb.ingress.kubernetes.io/healthcheck-path: *$' \
-    || { echo "FAIL: expected an empty healthcheck-path annotation for a non-httpGet probe"; echo "$out"; exit 1; }
+  out="$(helm template ci-exec-probe deployment -f ci/scenarios/deployment/exec-probe.yaml -s templates/ingress.yaml)" \
+    || { echo "FAIL: exec-probe liveness nil-pointered the ingress.yaml render (regression of B9)"; exit 1; }
+  # Since Phase 4's merge-based annotation consolidation, a null-valued
+  # annotation (no httpGet path, no explicit override) is dropped from the
+  # map entirely rather than rendered as `key: ` (empty) -- a real fix, not
+  # a regression: a null value is not valid in a Kubernetes `map[string]string`
+  # annotations block, so the old empty-string rendering was itself
+  # borderline-invalid. Assert the key is absent, not merely empty.
+  echo "$out" | grep -q 'alb.ingress.kubernetes.io/healthcheck-path' \
+    && { echo "FAIL: expected no healthcheck-path annotation at all for a non-httpGet probe with no override"; echo "$out"; exit 1; }
+  true
 }
 
 cmd_package_check() {
@@ -211,8 +222,8 @@ cmd_package_check() {
     # 2. Subcharts actually vendored.
     local need=""
     case "$pkg" in
-      *deployment*)  need="charts-common/ charts-common-deployment/" ;;
-      *statefulset*) need="charts-common/ charts-common-statefulset/" ;;
+      *deployment*)  need="charts-common/" ;;
+      *statefulset*) need="charts-common/" ;;
     esac
     for d in $need; do
       tar -tzf "$pkg" | grep -q "/charts/${d}" \

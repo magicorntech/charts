@@ -1,6 +1,6 @@
 suite: pvc (deployment umbrella — optional)
 templates:
-  - charts/charts-common-deployment/templates/pvc.yaml
+  - templates/pvc.yaml
 values:
   - ../../ci/scenarios/deployment/aws-full.yaml
 tests:

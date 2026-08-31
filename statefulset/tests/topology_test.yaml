@@ -1,6 +1,6 @@
 suite: topologySpreadConstraints
 templates:
-  - charts/charts-common-statefulset/templates/statefulset.yaml
+  - templates/statefulset.yaml
 values:
   - ../../ci/scenarios/statefulset/aws-full.yaml
 tests:

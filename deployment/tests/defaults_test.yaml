@@ -5,85 +5,85 @@ suite: bare defaults (no -f at all)
 # alone (destination: aws, every *.enabled: false), only the Deployment
 # itself should render — nothing else.
 templates:
-  - charts/charts-common-deployment/templates/deployment.yaml
-  - charts/charts-common-deployment/templates/pvc.yaml
-  - charts/charts-common/templates/service-aws.yaml
-  - charts/charts-common/templates/service-gcp.yaml
-  - charts/charts-common/templates/service-hcp.yaml
-  - charts/charts-common/templates/service-datacenter.yaml
-  - charts/charts-common/templates/ingress-aws.yaml
-  - charts/charts-common/templates/ingress-gcp.yaml
-  - charts/charts-common/templates/ingress-hcp.yaml
-  - charts/charts-common/templates/ingress-datacenter.yaml
-  - charts/charts-common/templates/hpa.yaml
-  - charts/charts-common/templates/cronjobs.yaml
-  - charts/charts-common/templates/migrations.yaml
-  - charts/charts-common/templates/other-prehooks.yaml
-  - charts/charts-common/templates/role.yaml
-  - charts/charts-common/templates/role-binding.yaml
-  - charts/charts-common/templates/service-account.yaml
-  - charts/charts-common/templates/security-group.yaml
-  - charts/charts-common/templates/secrets-gcp.yaml
+  - templates/deployment.yaml
+  - templates/pvc.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/ingress.yaml
+  - templates/ingress.yaml
+  - templates/ingress.yaml
+  - templates/ingress.yaml
+  - templates/hpa.yaml
+  - templates/cronjobs.yaml
+  - templates/migrations.yaml
+  - templates/other-prehooks.yaml
+  - templates/role.yaml
+  - templates/role-binding.yaml
+  - templates/service-account.yaml
+  - templates/security-group.yaml
+  - templates/secrets-gcp.yaml
 tests:
   - it: renders exactly the Deployment, nothing else
     asserts:
       - hasDocuments:
           count: 1
-        template: charts/charts-common-deployment/templates/deployment.yaml
+        template: templates/deployment.yaml
       - isKind:
           of: Deployment
-        template: charts/charts-common-deployment/templates/deployment.yaml
+        template: templates/deployment.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common-deployment/templates/pvc.yaml
+        template: templates/pvc.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-aws.yaml
+        template: templates/service.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-gcp.yaml
+        template: templates/service.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-hcp.yaml
+        template: templates/service.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-datacenter.yaml
+        template: templates/service.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/ingress-aws.yaml
+        template: templates/ingress.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/ingress-gcp.yaml
+        template: templates/ingress.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/ingress-hcp.yaml
+        template: templates/ingress.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/ingress-datacenter.yaml
+        template: templates/ingress.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/hpa.yaml
+        template: templates/hpa.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/cronjobs.yaml
+        template: templates/cronjobs.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/migrations.yaml
+        template: templates/migrations.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/other-prehooks.yaml
+        template: templates/other-prehooks.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/role-binding.yaml
+        template: templates/role-binding.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-account.yaml
+        template: templates/service-account.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/security-group.yaml
+        template: templates/security-group.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/secrets-gcp.yaml
+        template: templates/secrets-gcp.yaml

@@ -1,7 +1,7 @@
 suite: statefulset
 templates:
-  - charts/charts-common-statefulset/templates/statefulset.yaml
-  - charts/charts-common/templates/service-aws.yaml
+  - templates/statefulset.yaml
+  - templates/service.yaml
 values:
   - ../../ci/scenarios/statefulset/aws-full.yaml
 tests:
@@ -10,7 +10,7 @@ tests:
       - equal:
           path: spec.serviceName
           value: RELEASE-NAME-headless
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       # the one Service this chart does render (below) is never named
       # "-headless" — stable pod DNS is broken until Phase 5c adds a real
       # headless Service.
@@ -22,41 +22,41 @@ tests:
       - equal:
           path: metadata.name
           value: RELEASE-NAME
-        template: charts/charts-common/templates/service-aws.yaml
+        template: templates/service.yaml
 
   - it: hardcoded StatefulSet-specific spec fields
     asserts:
       - equal:
           path: spec.podManagementPolicy
           value: OrderedReady
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - equal:
           path: spec.updateStrategy.type
           value: RollingUpdate
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - equal:
           path: spec.updateStrategy.rollingUpdate.partition
           value: 0
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
 
   - it: volumeClaimTemplates carries the pvc size/storageClass, always ReadWriteOnce
     asserts:
       - equal:
           path: spec.volumeClaimTemplates[0].metadata.name
           value: storage
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - equal:
           path: spec.volumeClaimTemplates[0].spec.accessModes
           value: ["ReadWriteOnce"]
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - equal:
           path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
           value: 10Gi
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - equal:
           path: spec.volumeClaimTemplates[0].spec.storageClassName
           value: gp2
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
 
   - it: the storage volumeMount is always present, unlike the deployment chart's optional pvc mount
     set:
@@ -65,11 +65,11 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].volumeMounts[0].name
           value: storage
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - equal:
           path: spec.template.spec.containers[0].volumeMounts[0].mountPath
           value: /data
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
 
   - it: NEW (P4) - the configMap mount (after the always-present storage mount) uses subPath by default
     set:
@@ -78,7 +78,7 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].volumeMounts[1].subPath
           value: .env.prod
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
 
   - it: NEW (P4) - useSubPath=false drops subPath from the configMap mount, leaving the storage mount untouched
     set:
@@ -87,18 +87,18 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.containers[0].volumeMounts[1].subPath
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - equal:
           path: spec.template.spec.containers[0].volumeMounts[0].name
           value: storage
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
 
   - it: NEW (P6) - k8sSecrets disabled by default injects no extra env entries
     asserts:
       - lengthEqual:
           path: spec.template.spec.containers[0].env
           count: 1
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
 
   - it: NEW (P6) - k8sSecrets.common and .service both inject, independently toggleable
     set:
@@ -116,7 +116,7 @@ tests:
       - lengthEqual:
           path: spec.template.spec.containers[0].env
           count: 3
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml
       - contains:
           path: spec.template.spec.containers[0].env
           content:
@@ -125,4 +125,4 @@ tests:
               secretKeyRef:
                 name: my-service-secrets
                 key: SERVICE_TOKEN
-        template: charts/charts-common-statefulset/templates/statefulset.yaml
+        template: templates/statefulset.yaml

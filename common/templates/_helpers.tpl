@@ -41,3 +41,28 @@ Create the name of the service account to use
 {{- default (include "charts-common.name" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+Validated destination. Second layer of defense behind values.schema.json's
+enum (--skip-schema-validation, or an older Helm without schema support,
+would otherwise let an invalid destination render nothing, silently).
+*/}}
+{{- define "charts-common.destination" -}}
+{{- $d := default "" .Values.global.destination -}}
+{{- if not (has $d (list "aws" "gcp" "hcp" "datacenter")) -}}
+{{- fail (printf "global.destination must be one of: aws, gcp, hcp, datacenter (got %q)" $d) -}}
+{{- end -}}
+{{- $d -}}
+{{- end -}}
+
+{{/*
+"true" when this is a gcp destination with CSI-based secrets enabled — the
+one condition every gcpsecrets volume/mount site already repeats via
+`and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled`.
+Returns "" (falsy) otherwise, so callers can `{{- if include ... }}`.
+*/}}
+{{- define "charts-common.gcpSecretsEnabled" -}}
+{{- if and (eq (include "charts-common.destination" .) "gcp") .Values.global.secrets.enabled -}}
+true
+{{- end -}}
+{{- end -}}

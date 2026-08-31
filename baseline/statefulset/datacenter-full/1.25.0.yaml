@@ -1,5 +1,5 @@
 ---
-# Source: charts-statefulset/charts/charts-common/templates/service-datacenter.yaml
+# Source: charts-statefulset/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -8,8 +8,8 @@ metadata:
   annotations:
     {}
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -30,15 +30,15 @@ spec:
     app.kubernetes.io/instance: ci-statefulset
 
 ---
-# Source: charts-statefulset/charts/charts-common/templates/hpa.yaml
+# Source: charts-statefulset/templates/hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: ci-statefulset
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -74,15 +74,15 @@ spec:
       stabilizationWindowSeconds: 60
 
 ---
-# Source: charts-statefulset/charts/charts-common-statefulset/templates/statefulset.yaml
+# Source: charts-statefulset/templates/statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: ci-statefulset
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-statefulset-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -205,8 +205,8 @@ spec:
   - metadata:
       name: storage
       labels:
-        helm.sh/chart: charts-common-statefulset-0.0.1
-        k8s.magicorn.net/chart-version: 0.0.1
+        helm.sh/chart: charts-statefulset-1.2.0
+        k8s.magicorn.net/chart-version: 1.2.0
         app.kubernetes.io/name: ci-statefulset
         app.kubernetes.io/instance: ci-statefulset
         app.kubernetes.io/version: "0.0.1"
@@ -220,15 +220,15 @@ spec:
       storageClassName: "gp2"
 
 ---
-# Source: charts-statefulset/charts/charts-common/templates/cronjobs.yaml
+# Source: charts-statefulset/templates/cronjobs.yaml
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: ci-statefulset-cron1
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -288,15 +288,15 @@ spec:
           schedulerName: default-scheduler
 
 ---
-# Source: charts-statefulset/charts/charts-common/templates/ingress-datacenter.yaml
+# Source: charts-statefulset/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ci-statefulset-1
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -321,15 +321,15 @@ spec:
                 port:
                   number: 80
 ---
-# Source: charts-statefulset/charts/charts-common/templates/service-account.yaml
+# Source: charts-statefulset/templates/service-account.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ci-statefulset
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -339,14 +339,14 @@ metadata:
     "helm.sh/hook-weight": "-200"
 
 ---
-# Source: charts-statefulset/charts/charts-common/templates/role.yaml
+# Source: charts-statefulset/templates/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: "Role"
 metadata:
   name: ci-statefulset
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -363,14 +363,14 @@ rules:
   resources: ["pods/exec"]
   verbs: ["create","patch","delete"]
 ---
-# Source: charts-statefulset/charts/charts-common/templates/role-binding.yaml
+# Source: charts-statefulset/templates/role-binding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: "RoleBinding"
 metadata:
   name: ci-statefulset
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -388,15 +388,15 @@ subjects:
   name: ci-statefulset
   namespace: "ci"
 ---
-# Source: charts-statefulset/charts/charts-common/templates/migrations.yaml
+# Source: charts-statefulset/templates/migrations.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: ci-statefulset-migrations
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -451,15 +451,15 @@ spec:
               cpu: 250m
               memory: 1Gi
 ---
-# Source: charts-statefulset/charts/charts-common/templates/other-prehooks.yaml
+# Source: charts-statefulset/templates/other-prehooks.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: ci-statefulset-prehooks
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"

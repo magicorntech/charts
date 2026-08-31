@@ -1,6 +1,6 @@
 suite: ingress aws
 templates:
-  - charts/charts-common/templates/ingress-aws.yaml
+  - templates/ingress.yaml
 values:
   - ../../ci/scenarios/deployment/aws-full.yaml
 tests:

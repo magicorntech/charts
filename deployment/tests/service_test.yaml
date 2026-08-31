@@ -1,9 +1,9 @@
 suite: service (aws/gcp/hcp/datacenter)
 templates:
-  - charts/charts-common/templates/service-aws.yaml
-  - charts/charts-common/templates/service-gcp.yaml
-  - charts/charts-common/templates/service-hcp.yaml
-  - charts/charts-common/templates/service-datacenter.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/service.yaml
 values:
   - ../../ci/scenarios/deployment/aws-full.yaml
 # NOT tested here: a user annotation colliding with one of the 9 hardcoded
@@ -14,7 +14,7 @@ values:
 # Phase 4 replaces the splice with a real `merge (dict) $user $plat`.
 tests:
   - it: aws + ClusterIP renders no NLB annotations
-    template: charts/charts-common/templates/service-aws.yaml
+    template: templates/service.yaml
     asserts:
       - isKind:
           of: Service
@@ -25,7 +25,7 @@ tests:
           path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
 
   - it: FIXED (B2) - aws + LoadBalancer with empty annotations renders the 9 NLB keys and parses as valid YAML (used to crash on a bare {} spliced mid-map)
-    template: charts/charts-common/templates/service-aws.yaml
+    template: templates/service.yaml
     set:
       global.service.type: LoadBalancer
       global.service.annotations: {}
@@ -51,7 +51,7 @@ tests:
       - equal:
           path: metadata.annotations["team"]
           value: platform
-    template: charts/charts-common/templates/service-aws.yaml
+    template: templates/service.yaml
 
   - it: type None renders ClusterIP with clusterIP None (headless)
     set:
@@ -63,7 +63,7 @@ tests:
       - equal:
           path: spec.clusterIP
           value: None
-    template: charts/charts-common/templates/service-aws.yaml
+    template: templates/service.yaml
 
   - it: disabled service renders nothing on any destination
     set:
@@ -71,16 +71,16 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-aws.yaml
+        template: templates/service.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-gcp.yaml
+        template: templates/service.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-hcp.yaml
+        template: templates/service.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-datacenter.yaml
+        template: templates/service.yaml
 
   - it: gcp/hcp/datacenter never emit NLB annotations, only user-supplied ones
     set:
@@ -92,4 +92,4 @@ tests:
           path: metadata.annotations
           value:
             team: platform
-    template: charts/charts-common/templates/service-gcp.yaml
+    template: templates/service.yaml

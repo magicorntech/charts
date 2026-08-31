@@ -1,6 +1,6 @@
 suite: security group (aws only)
 templates:
-  - charts/charts-common/templates/security-group.yaml
+  - templates/security-group.yaml
 values:
   - ../../ci/scenarios/statefulset/aws-full.yaml
 tests:

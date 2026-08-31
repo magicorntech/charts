@@ -1,6 +1,6 @@
 suite: ingress gcp
 templates:
-  - charts/charts-common/templates/ingress-gcp.yaml
+  - templates/ingress.yaml
 values:
   - ../../ci/scenarios/deployment/gcp-full.yaml
 tests:

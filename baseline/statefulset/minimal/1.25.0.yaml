@@ -1,14 +1,15 @@
 ---
-# Source: charts-statefulset/charts/charts-common/templates/service-aws.yaml
+# Source: charts-statefulset/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: ci-statefulset
   namespace: "ci"
   annotations:
+    {}
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -25,15 +26,15 @@ spec:
     app.kubernetes.io/instance: ci-statefulset
 
 ---
-# Source: charts-statefulset/charts/charts-common-statefulset/templates/statefulset.yaml
+# Source: charts-statefulset/templates/statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: ci-statefulset
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-statefulset-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
@@ -120,8 +121,8 @@ spec:
   - metadata:
       name: storage
       labels:
-        helm.sh/chart: charts-common-statefulset-0.0.1
-        k8s.magicorn.net/chart-version: 0.0.1
+        helm.sh/chart: charts-statefulset-1.2.0
+        k8s.magicorn.net/chart-version: 1.2.0
         app.kubernetes.io/name: ci-statefulset
         app.kubernetes.io/instance: ci-statefulset
         app.kubernetes.io/version: "0.0.1"
@@ -135,36 +136,37 @@ spec:
       storageClassName: "gp2"
 
 ---
-# Source: charts-statefulset/charts/charts-common/templates/ingress-aws.yaml
+# Source: charts-statefulset/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ci-statefulset
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-statefulset
     app.kubernetes.io/instance: ci-statefulset
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
   annotations:
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:eu-west-1:000000000000:certificate/00000000-0000-0000-0000-000000000000"
-    alb.ingress.kubernetes.io/group.name: "minimal-lb"
-    alb.ingress.kubernetes.io/group.order: '100'
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '10'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:000000000000:certificate/00000000-0000-0000-0000-000000000000
+    alb.ingress.kubernetes.io/group.name: minimal-lb
+    alb.ingress.kubernetes.io/group.order: "100"
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "10"
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
-    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
-    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60, deletion_protection.enabled=true
-    alb.ingress.kubernetes.io/scheme: "internet-facing"
-    alb.ingress.kubernetes.io/ssl-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60,
+      deletion_protection.enabled=true
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/success-codes: "200"
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
 spec:
   ingressClassName: alb
   rules:

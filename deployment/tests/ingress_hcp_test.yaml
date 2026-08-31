@@ -1,6 +1,6 @@
 suite: ingress hcp
 templates:
-  - charts/charts-common/templates/ingress-hcp.yaml
+  - templates/ingress.yaml
 values:
   - ../../ci/scenarios/deployment/hcp-full.yaml
 # NOT tested here: a user annotation colliding with a hardcoded elb.*

@@ -1,6 +1,6 @@
 suite: hpa
 templates:
-  - charts/charts-common/templates/hpa.yaml
+  - templates/hpa.yaml
 values:
   - ../../ci/scenarios/deployment/aws-full.yaml
 tests:

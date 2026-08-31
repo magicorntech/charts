@@ -1,6 +1,6 @@
 suite: topologySpreadConstraints
 templates:
-  - charts/charts-common-deployment/templates/deployment.yaml
+  - templates/deployment.yaml
 values:
   - ../../ci/scenarios/deployment/aws-full.yaml
 tests:

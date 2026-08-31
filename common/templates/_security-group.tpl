@@ -1,0 +1,21 @@
+{{- define "charts-common.securityGroupPolicy" -}}
+{{- if eq (include "charts-common.destination" .) "aws" }}
+{{- if .Values.global.security.sgPolicy.enabled }}
+apiVersion: vpcresources.k8s.aws/v1beta1
+kind: SecurityGroupPolicy
+metadata:
+  name: {{ include "charts-common.name" . }}
+  namespace: "{{ .Release.Namespace }}"
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-200"
+spec:
+  serviceAccountSelector:
+    matchLabels:
+      {{- include "charts-common.selectorLabels" . | nindent 6 }}
+  securityGroups:
+    groupIds:
+      - {{ .Values.global.security.sgPolicy.securityGroupId | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}

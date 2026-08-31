@@ -7,7 +7,7 @@ suite: ingress naming (deliberate, not a bug)
 # entries; that would introduce exactly the churn this test exists to
 # prevent. See CLAUDE-plan bug catalogue.
 templates:
-  - charts/charts-common/templates/ingress-aws.yaml
+  - templates/ingress.yaml
 values:
   - ../../ci/scenarios/statefulset/aws-full.yaml
 tests:

@@ -1,6 +1,6 @@
 suite: cronjobs
 templates:
-  - charts/charts-common/templates/cronjobs.yaml
+  - templates/cronjobs.yaml
 values:
   - ../../ci/scenarios/statefulset/aws-full.yaml
 tests:

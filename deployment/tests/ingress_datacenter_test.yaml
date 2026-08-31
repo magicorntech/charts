@@ -1,6 +1,6 @@
 suite: ingress datacenter (behaviorally identical to gcp)
 templates:
-  - charts/charts-common/templates/ingress-datacenter.yaml
+  - templates/ingress.yaml
 values:
   - ../../ci/scenarios/deployment/datacenter-full.yaml
 tests:

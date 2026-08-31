@@ -1,8 +1,8 @@
 suite: rbac (service-account, role, role-binding)
 templates:
-  - charts/charts-common/templates/service-account.yaml
-  - charts/charts-common/templates/role.yaml
-  - charts/charts-common/templates/role-binding.yaml
+  - templates/service-account.yaml
+  - templates/role.yaml
+  - templates/role-binding.yaml
 values:
   - ../../ci/scenarios/deployment/aws-full.yaml
 tests:
@@ -10,26 +10,26 @@ tests:
     asserts:
       - hasDocuments:
           count: 1
-        template: charts/charts-common/templates/service-account.yaml
+        template: templates/service-account.yaml
       - hasDocuments:
           count: 1
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - hasDocuments:
           count: 1
-        template: charts/charts-common/templates/role-binding.yaml
+        template: templates/role-binding.yaml
 
   - it: namespaced access renders Role/RoleBinding with a namespace
     asserts:
       - isKind:
           of: Role
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - equal:
           path: metadata.namespace
           value: NAMESPACE
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - isKind:
           of: RoleBinding
-        template: charts/charts-common/templates/role-binding.yaml
+        template: templates/role-binding.yaml
 
   - it: clusterWideAccess renders ClusterRole/ClusterRoleBinding with no namespace
     set:
@@ -37,13 +37,13 @@ tests:
     asserts:
       - isKind:
           of: ClusterRole
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - notExists:
           path: metadata.namespace
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - isKind:
           of: ClusterRoleBinding
-        template: charts/charts-common/templates/role-binding.yaml
+        template: templates/role-binding.yaml
 
   - it: rule defaulting - apiGroups defaults to [""], resources/verbs default to ["*"]
     set:
@@ -53,15 +53,15 @@ tests:
       - equal:
           path: rules[0].apiGroups
           value: [""]
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - equal:
           path: rules[0].resources
           value: ["pods"]
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - equal:
           path: rules[0].verbs
           value: ["*"]
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
 
   - it: FIXED (B8) - empty rules renders a real empty list, not a null key
     set:
@@ -69,22 +69,22 @@ tests:
     asserts:
       - isNullOrEmpty:
           path: rules
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
 
   - it: all three carry the -200 pre-install hook weight
     asserts:
       - equal:
           path: metadata.annotations["helm.sh/hook-weight"]
           value: "-200"
-        template: charts/charts-common/templates/service-account.yaml
+        template: templates/service-account.yaml
       - equal:
           path: metadata.annotations["helm.sh/hook-weight"]
           value: "-200"
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - equal:
           path: metadata.annotations["helm.sh/hook-weight"]
           value: "-200"
-        template: charts/charts-common/templates/role-binding.yaml
+        template: templates/role-binding.yaml
 
   - it: disabled renders nothing at all
     set:
@@ -92,10 +92,10 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/service-account.yaml
+        template: templates/service-account.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/role.yaml
+        template: templates/role.yaml
       - hasDocuments:
           count: 0
-        template: charts/charts-common/templates/role-binding.yaml
+        template: templates/role-binding.yaml

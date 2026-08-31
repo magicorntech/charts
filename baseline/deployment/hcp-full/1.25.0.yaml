@@ -1,5 +1,5 @@
 ---
-# Source: charts-deployment/charts/charts-common/templates/service-hcp.yaml
+# Source: charts-deployment/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -8,8 +8,8 @@ metadata:
   annotations:
     {}
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -30,15 +30,15 @@ spec:
     app.kubernetes.io/instance: ci-deployment
 
 ---
-# Source: charts-deployment/charts/charts-common-deployment/templates/deployment.yaml
+# Source: charts-deployment/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ci-deployment
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-deployment-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -152,15 +152,15 @@ spec:
               app.kubernetes.io/name: ci-deployment
               app.kubernetes.io/instance: ci-deployment
 ---
-# Source: charts-deployment/charts/charts-common/templates/hpa.yaml
+# Source: charts-deployment/templates/hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: ci-deployment
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -196,15 +196,15 @@ spec:
       stabilizationWindowSeconds: 60
 
 ---
-# Source: charts-deployment/charts/charts-common/templates/cronjobs.yaml
+# Source: charts-deployment/templates/cronjobs.yaml
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: ci-deployment-cron1
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -264,29 +264,29 @@ spec:
           schedulerName: default-scheduler
 
 ---
-# Source: charts-deployment/charts/charts-common/templates/ingress-hcp.yaml
+# Source: charts-deployment/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ci-deployment-1
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
   annotations:
     kubernetes.io/elb.class: performance
-    kubernetes.io/elb.http2-enable: 'true'
-    kubernetes.io/elb.id: "externalloadBalancerNameHere"
+    kubernetes.io/elb.client_timeout: "60"
+    kubernetes.io/elb.http2-enable: "true"
+    kubernetes.io/elb.id: externalloadBalancerNameHere
+    kubernetes.io/elb.ingress-order: "100"
     kubernetes.io/elb.listener-master-ingress: ci/ci-deployment-1
-    kubernetes.io/elb.port: '443'
-    kubernetes.io/elb.tls-certificate-ids: "arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00"
-    kubernetes.io/elb.tls-ciphers-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
-    kubernetes.io/elb.ingress-order: '100'
-    kubernetes.io/elb.client_timeout: '60'
+    kubernetes.io/elb.port: "443"
+    kubernetes.io/elb.tls-certificate-ids: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+    kubernetes.io/elb.tls-ciphers-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
 spec:
   ingressClassName: cce
   rules:
@@ -303,15 +303,15 @@ spec:
             property:
               ingress.beta.kubernetes.io/url-match-mode: STARTS_WITH
 ---
-# Source: charts-deployment/charts/charts-common/templates/service-account.yaml
+# Source: charts-deployment/templates/service-account.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ci-deployment
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -321,15 +321,15 @@ metadata:
     "helm.sh/hook-weight": "-200"
 
 ---
-# Source: charts-deployment/charts/charts-common-deployment/templates/pvc.yaml
+# Source: charts-deployment/templates/pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ci-deployment-pvc
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-deployment-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -345,14 +345,14 @@ spec:
     requests:
       storage: "100Gi"
 ---
-# Source: charts-deployment/charts/charts-common/templates/role.yaml
+# Source: charts-deployment/templates/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: "Role"
 metadata:
   name: ci-deployment
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -369,14 +369,14 @@ rules:
   resources: ["pods/exec"]
   verbs: ["create","patch","delete"]
 ---
-# Source: charts-deployment/charts/charts-common/templates/role-binding.yaml
+# Source: charts-deployment/templates/role-binding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: "RoleBinding"
 metadata:
   name: ci-deployment
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -394,15 +394,15 @@ subjects:
   name: ci-deployment
   namespace: "ci"
 ---
-# Source: charts-deployment/charts/charts-common/templates/migrations.yaml
+# Source: charts-deployment/templates/migrations.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: ci-deployment-migrations
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
@@ -457,15 +457,15 @@ spec:
               cpu: 250m
               memory: 1Gi
 ---
-# Source: charts-deployment/charts/charts-common/templates/other-prehooks.yaml
+# Source: charts-deployment/templates/other-prehooks.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: ci-deployment-prehooks
   namespace: "ci"
   labels:
-    helm.sh/chart: charts-common-0.0.1
-    k8s.magicorn.net/chart-version: 0.0.1
+    helm.sh/chart: charts-deployment-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
     app.kubernetes.io/name: ci-deployment
     app.kubernetes.io/instance: ci-deployment
     app.kubernetes.io/version: "0.0.1"
