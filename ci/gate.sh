@@ -164,22 +164,22 @@ cmd_notes() {
   # binary's dry-run is genuinely offline; skip (not fail) if it isn't.
   local probe
   probe="$(KUBECONFIG=/dev/null helm install ci-notes-probe deployment -f ci/scenarios/deployment/minimal.yaml --dry-run=client 2>&1 || true)"
-  if echo "$probe" | grep -qE "cluster unreachable|could not get server version|unable to build kubernetes objects"; then
+  if grep -qE "cluster unreachable|could not get server version|unable to build kubernetes objects" <<< "$probe"; then
     echo "SKIP: this Helm binary's --dry-run=client still requires live cluster reachability (see this function's own comment) — notes assertions not run"
     return 0
   fi
 
   local out
   out="$(helm install ci-deployment-notes deployment -f ci/scenarios/deployment/aws-full.yaml --dry-run=client --render-subchart-notes)"
-  echo "$out" | grep -q "^  http://hostname.example/$" \
+  grep -q "^  http://hostname.example/$" <<< "$out" \
     || { echo "FAIL: deployment NOTES.txt did not render the expected http:// URL"; echo "$out"; exit 1; }
 
   out="$(helm install ci-datacenter-notes deployment -f ci/scenarios/deployment/datacenter-full.yaml --dry-run=client --render-subchart-notes)"
-  echo "$out" | grep -q "^  https://hostname.example/$" \
+  grep -q "^  https://hostname.example/$" <<< "$out" \
     || { echo "FAIL: deployment NOTES.txt did not render https:// for a tls-enabled ingress"; echo "$out"; exit 1; }
 
   out="$(helm install ci-statefulset-notes statefulset -f ci/scenarios/statefulset/aws-full.yaml --dry-run=client --render-subchart-notes)"
-  echo "$out" | grep -q "ci-statefulset-notes-0 8080:80" \
+  grep -q "ci-statefulset-notes-0 8080:80" <<< "$out" \
     || { echo "FAIL: statefulset NOTES.txt missing its ordinal-pod port-forward example"; echo "$out"; exit 1; }
 }
 
@@ -218,7 +218,7 @@ cmd_exec_probe_guard() {
   # a regression: a null value is not valid in a Kubernetes `map[string]string`
   # annotations block, so the old empty-string rendering was itself
   # borderline-invalid. Assert the key is absent, not merely empty.
-  echo "$out" | grep -q 'alb.ingress.kubernetes.io/healthcheck-path' \
+  grep -q 'alb.ingress.kubernetes.io/healthcheck-path' <<< "$out" \
     && { echo "FAIL: expected no healthcheck-path annotation at all for a non-httpGet probe with no override"; echo "$out"; exit 1; }
   true
 }
@@ -236,8 +236,25 @@ cmd_package_check() {
   for pkg in "${pkgs[@]}"; do
     echo "-- checking $pkg --"
 
+    # Captured once into a variable, not piped live into each check below.
+    # `grep -q`/`-l` exit the instant they find a match, closing their end
+    # of the pipe -- if `tar -tzf` (dozens of entries once a subchart is
+    # vendored) is still writing when that happens, it gets SIGPIPEd and
+    # exits 141. Under this script's own `set -o pipefail`, that 141
+    # becomes the pipeline's reported exit status regardless of grep's
+    # own (correct) result, which either manufactures a false FAIL (the
+    # `... || FAIL` shape below) or silently swallows a real one (a bare
+    # `if pipeline; then FAIL; fi` shape) — confirmed for real: this
+    # exact pattern passed every local/dev-machine check (small pipe
+    # writes never blocked long enough to matter) but reproducibly failed
+    # in CI's real environment. A here-string has no live writer process
+    # to SIGPIPE, so grep's own exit code is always what actually reaches
+    # the check.
+    local listing
+    listing="$(tar -tzf "$pkg")"
+
     # 1. No fixtures shipped — anywhere in the tree, including subcharts.
-    if tar -tzf "$pkg" | grep -E '(^|/)(tests|ci|hack|\.github)/|_test\.yaml$'; then
+    if grep -E '(^|/)(tests|ci|hack|\.github)/|_test\.yaml$' <<< "$listing"; then
       echo "FAIL: $pkg contains test fixtures (check .helmignore in the offending chart)"
       exit 1
     fi
@@ -249,12 +266,12 @@ cmd_package_check() {
       *statefulset*) need="charts-common/" ;;
     esac
     for d in $need; do
-      tar -tzf "$pkg" | grep -q "/charts/${d}" \
+      grep -q "/charts/${d}" <<< "$listing" \
         || { echo "FAIL: $pkg is missing vendored subchart $d"; exit 1; }
     done
 
     # 3. No nested stale tarball smuggled in.
-    if tar -tzf "$pkg" | grep -qE '\.tgz$'; then
+    if grep -qE '\.tgz$' <<< "$listing"; then
       echo "FAIL: $pkg contains a nested .tgz"
       exit 1
     fi

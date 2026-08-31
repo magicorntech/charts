@@ -75,9 +75,13 @@ jobs:
           # --verify=false is required on Helm 4: its plugin installer
           # otherwise rejects this git-source plugin with "plugin source
           # does not support verification" before it ever gets to
-          # actually cloning it. Harmless on Helm 3 too (the flag is
-          # simply a no-op there), so it's passed unconditionally rather
-          # than branching on ${{ matrix.helm }}.
+          # actually cloning it. On Helm 3 the flag does NOT exist at all
+          # -- confirmed directly (`helm plugin install --help`), it is a
+          # hard "unknown flag: --verify" error there, not a harmless
+          # no-op as an earlier version of this comment claimed. Detected
+          # at runtime rather than branched on ${{ matrix.helm }} so this
+          # keeps working correctly if the matrix ever gains another
+          # Helm 3.x or 4.x version.
           #
           # Pinned to the exact version this repo's own dev environment
           # runs (`helm plugin list`) — helm-unittest links Helm's own
@@ -85,8 +89,13 @@ jobs:
           # embedded Helm version is what actually determines render
           # behavior, not the Helm CLI on PATH. Bump deliberately, not by
           # accident.
+          extra_flags=""
+          if helm plugin install --help 2>&1 | grep -q -- "--verify"; then
+            extra_flags="--verify=false"
+          fi
+          # shellcheck disable=SC2086
           helm plugin install https://github.com/helm-unittest/helm-unittest.git \
-            --version v1.1.2 --verify=false
+            --version v1.1.2 $extra_flags
 
       - name: install kubeconform
         run: |
