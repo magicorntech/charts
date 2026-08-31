@@ -1,0 +1,55 @@
+suite: misc optional keys (5d)
+templates:
+  - templates/statefulset.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: unset by default — today's hardcoded literals are unchanged
+    asserts:
+      - equal:
+          path: spec.podManagementPolicy
+          value: OrderedReady
+      - equal:
+          path: spec.updateStrategy.rollingUpdate.partition
+          value: 0
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.accessModes
+          value: ["ReadWriteOnce"]
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirst
+      - equal:
+          path: spec.template.spec.schedulerName
+          value: default-scheduler
+
+  - it: NEW - podManagementPolicy and updateStrategy.partition are overridable
+    set:
+      global.deployment.podManagementPolicy: Parallel
+      global.deployment.updateStrategyPartition: 3
+    asserts:
+      - equal:
+          path: spec.podManagementPolicy
+          value: Parallel
+      - equal:
+          path: spec.updateStrategy.rollingUpdate.partition
+          value: 3
+
+  - it: NEW - volumeClaimTemplates.accessModes is overridable
+    set:
+      global.pvc.accessModes: ["ReadWriteOnce", "ReadWriteMany"]
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.accessModes
+          value: ["ReadWriteOnce", "ReadWriteMany"]
+
+  - it: NEW - dnsPolicy/schedulerName are overridable, same as the deployment chart
+    set:
+      global.deployment.dnsPolicy: ClusterFirstWithHostNet
+      global.deployment.schedulerName: my-scheduler
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+      - equal:
+          path: spec.template.spec.schedulerName
+          value: my-scheduler

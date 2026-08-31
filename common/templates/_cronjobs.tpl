@@ -66,7 +66,7 @@ spec:
               {{ . | nindent 14 }}
               {{- end }}
             {{- end }}
-          dnsPolicy: ClusterFirst
+          dnsPolicy: {{ .Values.global.deployment.dnsPolicy | default "ClusterFirst" }}
           {{- if .Values.global.deployment.ndots }}
           dnsConfig:
             options:
@@ -78,7 +78,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           restartPolicy: {{ $job.restartPolicy }}
-          schedulerName: default-scheduler
+          schedulerName: {{ .Values.global.deployment.schedulerName | default "default-scheduler" }}
           {{- with .Values.global.deployment.affinity }}
           affinity:
             {{- toYaml . | nindent 12 }}

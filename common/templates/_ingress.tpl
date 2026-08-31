@@ -104,7 +104,10 @@ itself already dropping it.
 The rules: block. Identical across all 4 destinations except hcp's
 per-path `property:` block. Dict: {root, ingress, dest}. k8s 1.25+ only
 (the pre-1.18/1.19 semverCompare branches this repo carried are gone —
-dead code below this chart's own README-declared floor).
+dead code below this chart's own README-declared floor). The backend
+port always comes from `global.service.ports.one` unless this specific
+ingress entry sets its own `servicePortName` — every entry has hardcoded
+"one" today, so unset stays byte-identical.
 */}}
 {{- define "charts-common.ingress.rules" -}}
 {{- $root := .root -}}
@@ -122,7 +125,7 @@ dead code below this chart's own README-declared floor).
           service:
             name: {{ include "charts-common.ingress.rules.serviceName" (dict "root" $root "ingress" $ingress) }}
             port:
-              number: {{ $root.Values.global.service.ports.one.outer }}
+              number: {{ (index $root.Values.global.service.ports ($ingress.servicePortName | default "one")).outer }}
         {{- if eq $.dest "hcp" }}
         property:
           ingress.beta.kubernetes.io/url-match-mode: STARTS_WITH

@@ -1,9 +1,22 @@
 {{/*
-Expand the name of the chart.
+Expand the name of the chart — plain .Release.Name by default (this chart
+has never prefixed/suffixed it with the chart name the way the standard
+Helm scaffold's fullname helper does), with two opt-in overrides:
+fullnameOverride replaces it outright (highest precedence); nameOverride
+replaces just the base name it's built from (equivalent to
+fullnameOverride here specifically, since there's no chart-name
+component to combine it with — kept as its own key anyway for parity
+with the standard Helm scaffold's naming, so a values file written for
+that convention still does something sensible here rather than being a
+silent no-op). Neither set -> byte-identical to before either existed.
 */}}
 {{- define "charts-common.name" -}}
-{{- printf "%s" .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{- if .Values.global.fullnameOverride -}}
+{{- .Values.global.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- default .Release.Name .Values.global.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
 
 {{/*
 Create chart name and version as used by the chart label.

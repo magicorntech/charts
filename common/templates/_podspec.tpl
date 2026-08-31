@@ -8,7 +8,7 @@ Includes the B4 fix (per-item labelSelector, not one spliced after the
 whole list).
 */}}
 {{- define "charts-common.podSpecTail" -}}
-dnsPolicy: ClusterFirst
+dnsPolicy: {{ .Values.global.deployment.dnsPolicy | default "ClusterFirst" }}
 {{- if .Values.global.deployment.ndots }}
 dnsConfig:
   options:
@@ -20,7 +20,7 @@ nodeSelector:
   {{- toYaml . | nindent 2 }}
 {{- end }}
 restartPolicy: Always
-schedulerName: default-scheduler
+schedulerName: {{ .Values.global.deployment.schedulerName | default "default-scheduler" }}
 terminationGracePeriodSeconds: {{ .Values.global.deployment.deregistrationTime }}
 {{- with .Values.global.deployment.affinity }}
 affinity:

@@ -60,7 +60,9 @@
               "listenPorts": { "type": "string", "enum": ["http", "https", "both"] },
               "sslRedirect": { "type": "boolean" },
               "healthcheckPath": { "type": "string" },
-              "rolloutService": { "type": "string", "enum": ["", "preview", "active"] }
+              "rolloutService": { "type": "string", "enum": ["", "preview", "active"] },
+              "name": { "type": "string" },
+              "servicePortName": { "type": "string" }
             }
           }
         },

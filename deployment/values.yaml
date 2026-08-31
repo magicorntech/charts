@@ -15,6 +15,11 @@ global:
   # exactly the failure this file exists to prevent.
   destination: aws
 
+  # Object name override, highest precedence first. Both null -> plain
+  # .Release.Name, unchanged from before either key existed.
+  fullnameOverride: null
+  nameOverride: null
+
   deployment:
     # Whether the Deployment workload object renders at all. Default true
     # (byte-identical to before P7 existed) -- flip to false only together
@@ -44,6 +49,15 @@ global:
     # template hash changes) and changes DNS resolution behavior -- opt-in,
     # never defaulted.
     ndots: null
+    # Pod-spec-level overrides — all null by default, reproducing today's
+    # hardcoded literals exactly. podManagementPolicy/updateStrategyPartition
+    # only affect the statefulset chart (no equivalent concept on a
+    # Deployment/Rollout); dnsPolicy/schedulerName apply to every pod spec
+    # in both charts.
+    dnsPolicy: null
+    schedulerName: null
+    podManagementPolicy: null
+    updateStrategyPartition: null
     nodeSelector: {}
     affinity: {}
     tolerations: []
@@ -138,6 +152,13 @@ global:
       enabled: false
       annotations: {}
       clusterWideAccess: false
+      # Only meaningful when clusterWideAccess is true -- overrides the
+      # ClusterRole/ClusterRoleBinding's own name (normally the same as
+      # the ServiceAccount's). A ClusterRole is cluster-scoped, so two
+      # releases sharing a release name in different namespaces would
+      # otherwise collide on the exact same object. Null -> unchanged
+      # from before this key existed.
+      clusterRoleName: null
       rules: []
     sgPolicy:
       enabled: false

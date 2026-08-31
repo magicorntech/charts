@@ -15,13 +15,13 @@ spec:
   serviceName: {{ include "charts-common.name" . }}-headless
   # StatefulSet specific: podManagementPolicy controls how pods are created/deleted
   # Default is OrderedReady, which ensures pods are created/deleted in order
-  podManagementPolicy: OrderedReady
+  podManagementPolicy: {{ .Values.global.deployment.podManagementPolicy | default "OrderedReady" }}
   # StatefulSet specific: updateStrategy for rolling updates
   # Default RollingUpdate with partition: 0 for immediate updates
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
-      partition: 0
+      partition: {{ .Values.global.deployment.updateStrategyPartition | default 0 }}
   selector:
     matchLabels:
       {{- include "charts-common.selectorLabels" . | nindent 6 }}
@@ -119,7 +119,7 @@ spec:
         {{- include "charts-common.labels" . | nindent 8 }}
     spec:
       accessModes:
-        - ReadWriteOnce
+        {{- toYaml (default (list "ReadWriteOnce") .Values.global.pvc.accessModes) | nindent 8 }}
       resources:
         requests:
           storage: {{ .Values.global.pvc.size }}

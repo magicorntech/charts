@@ -179,6 +179,31 @@ These charts are maintained and distributed through our [AWS ECR Public Gallery]
 - **Ingress not working**: Check ingress configuration and controller availability
 - **Templates not rendering**: Ensure you're using umbrella charts (`deployment/` or `statefulset/`), not workload charts directly
 
+#### Objects left behind by `helm uninstall`
+
+The ServiceAccount, Role/ClusterRole, RoleBinding, PVC, SecurityGroupPolicy,
+and SecretProviderClass objects are all rendered as Helm hooks
+(`pre-install,pre-upgrade`), not as ordinary tracked release resources.
+This is a known, currently-unfixed limitation, not a bug you're hitting by
+accident: Helm hooks are never recorded in the release's own manifest, so
+`helm uninstall` leaves every one of them behind, and a subsequent
+`helm install` of the same release name creates them fresh
+(`before-hook-creation` is the default delete policy, so they don't pile
+up release-over-release — they're just never cleaned up on uninstall).
+The correct long-term fix is to stop rendering these as hooks at all, but
+doing that on an *existing* release breaks its next `helm upgrade` with
+`invalid ownership metadata` (Helm refuses to adopt an object it didn't
+create as a tracked resource without being told to). If you hit that
+error, adopt the object manually first, once, per object:
+
+```bash
+kubectl annotate --overwrite <kind> <name> -n <namespace> \
+  meta.helm.sh/release-name=<release-name> \
+  meta.helm.sh/release-namespace=<namespace>
+kubectl label --overwrite <kind> <name> -n <namespace> \
+  app.kubernetes.io/managed-by=Helm
+```
+
 ### Getting Help
 
 - Review `values-example.yaml` files in chart directories for configuration examples
