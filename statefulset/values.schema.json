@@ -56,7 +56,10 @@
               "lbOrder": { "type": "integer" },
               "idleTimeout": { "type": "integer" },
               "className": { "type": ["string", "null"] },
-              "wafId": { "type": ["string", "null"] }
+              "wafId": { "type": ["string", "null"] },
+              "listenPorts": { "type": "string", "enum": ["http", "https", "both"] },
+              "sslRedirect": { "type": "boolean" },
+              "healthcheckPath": { "type": "string" }
             }
           }
         },

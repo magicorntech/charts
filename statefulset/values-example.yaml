@@ -116,6 +116,13 @@ global:
     certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
     wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
     sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    # AWS only. "http", "https", or "both" (default when unset).
+    listenPorts: both
+    # AWS only. Set to false to disable the automatic HTTP -> HTTPS redirect.
+    sslRedirect: true
+    # AWS only. Overrides the ALB healthcheck path; defaults to
+    # deployment.liveness.httpGet.path when unset.
+    # healthcheckPath: /healthz
     lbId: externalloadBalancerNameHere
     # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
     lbOrder: 100
@@ -137,6 +144,13 @@ global:
     certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
     wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
     sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    # AWS only. "http", "https", or "both" (default when unset).
+    listenPorts: both
+    # AWS only. Set to false to disable the automatic HTTP -> HTTPS redirect.
+    sslRedirect: true
+    # AWS only. Overrides the ALB healthcheck path; defaults to
+    # deployment.liveness.httpGet.path when unset.
+    # healthcheckPath: /healthz
     lbId: internalloadBalancerNameHere
     # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
     lbOrder: 200
