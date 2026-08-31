@@ -99,14 +99,34 @@ cmd_kubeconform() {
     # Runs every kube version even if an earlier one fails, so a single
     # scenario failure doesn't hide problems on the others; the aggregate
     # exit code is checked once every version has run.
-    # shellcheck disable=SC2086
-    if ! kubeconform -verbose \
-      -kubernetes-version "$kv" \
-      -schema-location default \
-      -schema-location 'ci/crd-schemas/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
-      -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
-      -output junit \
-      $files > "$DIST_DIR/reports/kubeconform-$kv.xml"; then
+    #
+    # Retried with backoff: raw.githubusercontent.com's schema CDN has a
+    # real, observed flake where one specific file (e.g. the non-strict
+    # v1.25.0 apps/v1 Deployment schema) intermittently 400s for a few
+    # minutes at a time — confirmed independently of this repo via direct
+    # curl, unrelated to anything in the chart. A single transient fetch
+    # failure shouldn't fail the whole gate.
+    local attempt ok=0
+    for attempt in 1 2 3; do
+      # shellcheck disable=SC2086
+      if kubeconform -verbose \
+        -kubernetes-version "$kv" \
+        -schema-location default \
+        -schema-location 'ci/crd-schemas/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+        -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+        -output junit \
+        $files > "$DIST_DIR/reports/kubeconform-$kv.xml"; then
+        ok=1
+        break
+      fi
+      if grep -q "error while downloading schema" "$DIST_DIR/reports/kubeconform-$kv.xml" 2>/dev/null; then
+        echo "kubeconform: transient schema-download error at kube $kv (attempt $attempt/3), retrying in $((attempt * 5))s..."
+        sleep "$((attempt * 5))"
+        continue
+      fi
+      break
+    done
+    if [ "$ok" -ne 1 ]; then
       overall_status=1
       echo "kubeconform found issues at kube $kv (see $DIST_DIR/reports/kubeconform-$kv.xml)"
     fi

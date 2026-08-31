@@ -99,3 +99,20 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  - it: NEW (P6) - k8sSecrets.common injects a secretKeyRef env var into the cronjob container
+    set:
+      global.k8sSecrets.common.enabled: true
+      global.k8sSecrets.common.secretName: shared-secrets
+      global.k8sSecrets.common.keys:
+        - key: API_KEY
+          envName: API_KEY
+    asserts:
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          content:
+            name: API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shared-secrets
+                key: API_KEY

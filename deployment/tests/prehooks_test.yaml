@@ -110,3 +110,31 @@ tests:
       - notExists:
           path: spec.template.spec.containers[0].volumeMounts[0].subPath
         template: charts/charts-common/templates/other-prehooks.yaml
+
+  - it: NEW (P6) - k8sSecrets.common injects a secretKeyRef env var into both migrations and other-prehooks
+    set:
+      global.prehooks.otherPrehooks.enabled: true
+      global.k8sSecrets.common.enabled: true
+      global.k8sSecrets.common.secretName: shared-secrets
+      global.k8sSecrets.common.keys:
+        - key: API_KEY
+          envName: API_KEY
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shared-secrets
+                key: API_KEY
+        template: charts/charts-common/templates/migrations.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shared-secrets
+                key: API_KEY
+        template: charts/charts-common/templates/other-prehooks.yaml

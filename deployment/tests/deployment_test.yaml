@@ -91,3 +91,51 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.containers[0].volumeMounts[0].subPath
+
+  - it: NEW (P6) - k8sSecrets disabled by default injects no extra env entries
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 1
+
+  - it: NEW (P6) - k8sSecrets.common injects a secretKeyRef env var
+    set:
+      global.k8sSecrets.common.enabled: true
+      global.k8sSecrets.common.secretName: shared-secrets
+      global.k8sSecrets.common.keys:
+        - key: API_KEY
+          envName: API_KEY
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shared-secrets
+                key: API_KEY
+
+  - it: NEW (P6) - k8sSecrets.common and .service both inject, independently toggleable
+    set:
+      global.k8sSecrets.common.enabled: true
+      global.k8sSecrets.common.secretName: shared-secrets
+      global.k8sSecrets.common.keys:
+        - key: API_KEY
+          envName: API_KEY
+      global.k8sSecrets.service.enabled: true
+      global.k8sSecrets.service.secretName: my-service-secrets
+      global.k8sSecrets.service.keys:
+        - key: SERVICE_TOKEN
+          envName: SERVICE_TOKEN
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 3
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVICE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: my-service-secrets
+                key: SERVICE_TOKEN

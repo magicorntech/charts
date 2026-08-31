@@ -96,3 +96,13 @@ global:
     enabled: false
     mountPath: ""
     data: []
+
+  k8sSecrets:
+    common:
+      enabled: false
+      secretName: ""
+      keys: []
+    service:
+      enabled: false
+      secretName: ""
+      keys: []
