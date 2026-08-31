@@ -1,0 +1,40 @@
+suite: service-headless (B5 fix — StatefulSet's spec.serviceName now has a real backing Service)
+templates:
+  - templates/statefulset.yaml
+  - templates/service-headless.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: FIXED (B5) - the headless Service name matches the StatefulSet's own spec.serviceName exactly
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-headless
+        template: templates/service-headless.yaml
+      - equal:
+          path: spec.serviceName
+          value: RELEASE-NAME-headless
+        template: templates/statefulset.yaml
+
+  - it: clusterIP is None and ports mirror the same service.ports map the main Service uses
+    asserts:
+      - equal:
+          path: spec.clusterIP
+          value: None
+        template: templates/service-headless.yaml
+      - contains:
+          path: spec.ports
+          content:
+            name: one
+            port: 80
+            targetPort: 80
+            protocol: TCP
+        template: templates/service-headless.yaml
+
+  - it: renders regardless of global.service.enabled — the StatefulSet's own serviceName reference is itself unconditional
+    set:
+      global.service.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: templates/service-headless.yaml

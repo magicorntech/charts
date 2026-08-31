@@ -1,4 +1,32 @@
 ---
+# Source: charts-statefulset/templates/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ci-statefulset-headless
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  clusterIP: None
+  ports:
+    - name: one
+      targetPort: 80
+      port: 80
+      protocol: TCP
+    - name: two
+      targetPort: 443
+      port: 443
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+---
 # Source: charts-statefulset/templates/service.yaml
 apiVersion: v1
 kind: Service
