@@ -1,0 +1,548 @@
+---
+# Source: charts-statefulset/templates/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ci-statefulset-headless
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  clusterIP: None
+  ports:
+    - name: one
+      targetPort: 80
+      port: 80
+      protocol: TCP
+    - name: two
+      targetPort: 443
+      port: 443
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+---
+# Source: charts-statefulset/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ci-statefulset
+  namespace: "ci"
+  annotations:
+    {}
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: "ClusterIP"
+  ports:
+    - name: one
+      targetPort: 80
+      port: 80
+      protocol: TCP
+    - name: two
+      targetPort: 443
+      port: 443
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+
+---
+# Source: charts-statefulset/templates/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ci-statefulset
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ci-statefulset
+  minReplicas: 2
+  maxReplicas: 100
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 40
+  behavior:
+    scaleDown:
+      policies:
+      - periodSeconds: 60
+        type: Percent
+        value: 25
+      selectPolicy: Min
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      policies:
+      - periodSeconds: 60
+        type: Pods
+        value: 4
+      selectPolicy: Max
+      stabilizationWindowSeconds: 60
+
+---
+# Source: charts-statefulset/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ci-statefulset
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # StatefulSet specific: serviceName is required for stable network identity
+  serviceName: ci-statefulset-headless
+  # StatefulSet specific: podManagementPolicy controls how pods are created/deleted
+  # Default is OrderedReady, which ensures pods are created/deleted in order
+  podManagementPolicy: OrderedReady
+  # StatefulSet specific: updateStrategy for rolling updates
+  # Default RollingUpdate with partition: 0 for immediate updates
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ci-statefulset
+      app.kubernetes.io/instance: ci-statefulset
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app.kubernetes.io/name: ci-statefulset
+        app.kubernetes.io/instance: ci-statefulset
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      serviceAccountName: ci-statefulset
+      securityContext:
+        {}
+      volumes:
+        - name: app-config
+          configMap:
+            name: "app-config"
+            items:
+              - key: ".env.prod"
+                path: ".env.prod"
+            defaultMode: 420
+
+      containers:
+        - name: ci-statefulset
+          image: "registry.example.com/app:1.0.0"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - name: one
+              containerPort: 80
+              protocol: TCP
+            - name: two
+              containerPort: 443
+              protocol: TCP
+          volumeMounts:
+            # StatefulSet specific: volumeMounts for persistent storage
+            # Each pod will get its own PVC based on volumeClaimTemplates
+            - name: storage
+              mountPath: "/data"
+              subPath: ""
+              readOnly: false
+            - name: app-config
+              readOnly: true
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
+          readinessProbe:
+            failureThreshold: 2
+            httpGet:
+              path: /healthz
+              port: one
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 5
+          livenessProbe:
+            failureThreshold: 2
+            httpGet:
+              path: /healthz
+              port: one
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 5
+          env:
+            - name: foo
+              value: bar
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/bash
+                - -c
+                - sleep 60
+          securityContext:
+            {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 60
+      topologySpreadConstraints:
+        -
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: ci-statefulset
+              app.kubernetes.io/instance: ci-statefulset
+
+  # StatefulSet specific: volumeClaimTemplates for persistent storage
+  # Each pod will get its own PVC: <statefulset-name>-<pod-ordinal>-<template-name>
+  volumeClaimTemplates:
+  - metadata:
+      name: storage
+      labels:
+        helm.sh/chart: charts-statefulset-1.2.0
+        k8s.magicorn.net/chart-version: 1.2.0
+        app.kubernetes.io/name: ci-statefulset
+        app.kubernetes.io/instance: ci-statefulset
+        app.kubernetes.io/version: "0.0.1"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: "gp2"
+
+---
+# Source: charts-statefulset/templates/cronjobs.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ci-statefulset-cron1
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: ci-statefulset-cron1
+            cron: cron1
+        spec:
+          imagePullSecrets:
+            - name: regcred
+          serviceAccountName: ci-statefulset
+          securityContext:
+            {}
+          volumes:
+            - name: app-config
+              configMap:
+                name: "app-config"
+                items:
+                  - key: ".env.prod"
+                    path: ".env.prod"
+                defaultMode: 420
+          containers:
+          - name: cron1
+            image: "registry.example.com/app:1.0.0"
+            imagePullPolicy: "IfNotPresent"
+            env:
+            - name: foo
+              value: bar
+            command: 
+            - /usr/local/bin/php
+            - artisan
+            - schedule:run
+            args: 
+            - --no-interaction
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                cpu: 50m
+                memory: 256Mi
+            volumeMounts:
+              - name: app-config
+                readOnly: true
+                mountPath: "/var/www/html"
+                subPath: ".env.prod"
+          dnsPolicy: ClusterFirst
+          restartPolicy: OnFailure
+          schedulerName: default-scheduler
+
+---
+# Source: charts-statefulset/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ci-statefulset-1
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    kubernetes.io/elb.class: performance
+    kubernetes.io/elb.client_timeout: "60"
+    kubernetes.io/elb.http2-enable: "true"
+    kubernetes.io/elb.id: externalloadBalancerNameHere
+    kubernetes.io/elb.ingress-order: "100"
+    kubernetes.io/elb.listener-master-ingress: ci/ci-statefulset-1
+    kubernetes.io/elb.port: "443"
+    kubernetes.io/elb.tls-certificate-ids: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+    kubernetes.io/elb.tls-ciphers-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+spec:
+  ingressClassName: cce
+  rules:
+    - host: "hostname.example"
+      http:
+        paths:
+          - path: "/"
+            pathType: "Prefix"
+            backend:
+              service:
+                name: ci-statefulset
+                port:
+                  number: 80
+            property:
+              ingress.beta.kubernetes.io/url-match-mode: STARTS_WITH
+---
+# Source: charts-statefulset/templates/service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-statefulset
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-200"
+
+---
+# Source: charts-statefulset/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: "Role"
+metadata:
+  name: ci-statefulset
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-200"
+  namespace: "ci"
+rules:
+- apiGroups: [""]
+  resources: ["configmaps","events","pods","pods/attach","pods/exec","secrets","services"]
+  verbs: ["get","list","watch","create","patch","update","delete"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create","patch","delete"]
+---
+# Source: charts-statefulset/templates/role-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: "RoleBinding"
+metadata:
+  name: ci-statefulset
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-200"
+  namespace: "ci"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: "Role"
+  name: ci-statefulset
+subjects:
+- kind: ServiceAccount
+  name: ci-statefulset
+  namespace: "ci"
+---
+# Source: charts-statefulset/templates/migrations.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ci-statefulset-migrations
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-100"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app.kubernetes.io/name: ci-statefulset
+        app.kubernetes.io/instance: ci-statefulset
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      serviceAccountName: ci-statefulset
+      restartPolicy: Never
+      volumes:
+        - name: app-config
+          configMap:
+            name: "app-config"
+            items:
+              - key: ".env.prod"
+                path: ".env.prod"
+            defaultMode: 420
+      containers:
+        - name: ci-statefulset
+          image: "registry.example.com/app:1.0.0"
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /usr/local/bin/python
+          args:
+            - manage.py
+            - migrate
+            - --noinput
+          volumeMounts:
+            - name: app-config
+              readOnly: true
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
+          env:
+            - name: foo
+              value: bar
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+---
+# Source: charts-statefulset/templates/other-prehooks.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ci-statefulset-prehooks
+  namespace: "ci"
+  labels:
+    helm.sh/chart: charts-statefulset-1.2.0
+    k8s.magicorn.net/chart-version: 1.2.0
+    app.kubernetes.io/name: ci-statefulset
+    app.kubernetes.io/instance: ci-statefulset
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-90"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app.kubernetes.io/name: ci-statefulset
+        app.kubernetes.io/instance: ci-statefulset
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      serviceAccountName: ci-statefulset
+      restartPolicy: Never
+      volumes:
+        - name: app-config
+          configMap:
+            name: "app-config"
+            items:
+              - key: ".env.prod"
+                path: ".env.prod"
+            defaultMode: 420
+      containers:
+        - name: ci-statefulset
+          image: "registry.example.com/app:1.0.0"
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /usr/local/bin/python
+          args:
+            - manage.py
+            - some_action_here
+          volumeMounts:
+            - name: app-config
+              readOnly: true
+              mountPath: "/var/www/html"
+              subPath: ".env.prod"
+          env:
+            - name: foo
+              value: bar
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi

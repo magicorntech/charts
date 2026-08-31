@@ -1,0 +1,141 @@
+suite: deployment
+templates:
+  - templates/deployment.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: replicas comes from replicaCount when autoscaling is off
+    set:
+      global.autoscaling.enabled: false
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 2
+
+  - it: replicas is omitted when autoscaling is on
+    asserts:
+      - notExists:
+          path: spec.replicas
+
+  - it: strategy passes through verbatim
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
+      - equal:
+          path: spec.strategy.rollingUpdate.maxSurge
+          value: 1
+
+  - it: readiness and liveness probes render when set
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+
+  - it: container ports render only when service.enabled is true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: one
+            containerPort: 80
+            protocol: TCP
+
+  - it: no container ports when service is disabled
+    set:
+      global.service.enabled: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].ports
+
+  - it: terminationGracePeriodSeconds mirrors deregistrationTime
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 60
+
+  - it: progressDeadlineSeconds and revisionHistoryLimit come from failSeconds/revisionHistory
+    asserts:
+      - equal:
+          path: spec.progressDeadlineSeconds
+          value: 600
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 25
+
+  - it: imagePullSecrets omitted when empty
+    set:
+      global.deployment.image.imagePullSecrets: []
+    asserts:
+      - notExists:
+          path: spec.template.spec.imagePullSecrets
+
+  - it: imagePullSecrets present when set
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: regcred
+
+  - it: NEW (P4) - configMap mount uses subPath by default (unaffected by ConfigMap updates until the pod restarts)
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath
+          value: .env.prod
+
+  - it: NEW (P4) - useSubPath=false switches to a directory mount, dropping subPath so kubelet propagates ConfigMap updates live
+    set:
+      global.configMap.useSubPath: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath
+
+  - it: NEW (P6) - k8sSecrets disabled by default injects no extra env entries
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 1
+
+  - it: NEW (P6) - k8sSecrets.common injects a secretKeyRef env var
+    set:
+      global.k8sSecrets.common.enabled: true
+      global.k8sSecrets.common.secretName: shared-secrets
+      global.k8sSecrets.common.keys:
+        - key: API_KEY
+          envName: API_KEY
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shared-secrets
+                key: API_KEY
+
+  - it: NEW (P6) - k8sSecrets.common and .service both inject, independently toggleable
+    set:
+      global.k8sSecrets.common.enabled: true
+      global.k8sSecrets.common.secretName: shared-secrets
+      global.k8sSecrets.common.keys:
+        - key: API_KEY
+          envName: API_KEY
+      global.k8sSecrets.service.enabled: true
+      global.k8sSecrets.service.secretName: my-service-secrets
+      global.k8sSecrets.service.keys:
+        - key: SERVICE_TOKEN
+          envName: SERVICE_TOKEN
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 3
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVICE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: my-service-secrets
+                key: SERVICE_TOKEN

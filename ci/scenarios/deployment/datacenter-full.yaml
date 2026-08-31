@@ -1,0 +1,219 @@
+# Full-featured datacenter deployment: every optional toggle exercised at once.
+global:
+  destination: datacenter
+
+  deployment:
+    image:
+      uri: registry.example.com/app:1.0.0
+      pullPolicy: IfNotPresent
+      imagePullSecrets:
+      - name: regcred
+    env:
+    - name: foo
+      value: bar
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        memory: 1Gi
+    readiness:
+      httpGet:
+        port: one
+        path: /healthz
+      failureThreshold: 2
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      successThreshold: 1
+      timeoutSeconds: 5
+    liveness:
+      httpGet:
+        port: one
+        path: /healthz
+      failureThreshold: 2
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      successThreshold: 1
+      timeoutSeconds: 5
+    podAnnotations:
+      cluster-autoscaler.kubernetes.io/safe-to-evict: 'true'
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    lifecycle:
+      preStop:
+        exec:
+          command: ["/bin/bash", "-c", "sleep 60"]
+    deregistrationTime: 60
+    failSeconds: 600
+    revisionHistory: 25
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+
+  service:
+    enabled: true
+    annotations: {}
+    type: ClusterIP
+    ports:
+      one:
+        inner: 80
+        outer: 80
+      two:
+        inner: 443
+        outer: 443
+
+  ingress:
+  - enabled: true
+    annotations: {}
+    className: nginx
+    idleTimeout: 60
+    scheme: internet-facing
+    certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+    wafId: null
+    sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    lbId: externalloadBalancerNameHere
+    lbOrder: 100
+    tls:
+    - hosts:
+      - hostname.example
+      secretName: hostname-tls
+    hosts:
+    - host: hostname.example
+      paths:
+      - path: /
+        pathType: Prefix
+  - enabled: false
+    annotations: {}
+    className: null
+    idleTimeout: 60
+    scheme: internal
+    certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
+    wafId: null
+    sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    lbId: internalloadBalancerNameHere
+    lbOrder: 200
+    hosts:
+    - host: hostname.int.example
+      paths:
+      - path: /
+        pathType: Prefix
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 40
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        selectPolicy: Max
+        policies:
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        selectPolicy: Min
+        policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+
+  configMap:
+    enabled: true
+    name: app-config
+    fileName: .env.prod
+    mountPath: /var/www/html
+
+  prehooks:
+    dbMigrations:
+      enabled: true
+      command:
+      - /usr/local/bin/python
+      args:
+      - manage.py
+      - migrate
+      - '--noinput'
+    otherPrehooks:
+      enabled: true
+      command:
+      - /usr/local/bin/python
+      args:
+      - manage.py
+      - some_action_here
+
+  cronjobs:
+  - name: cron1
+    enabled: true
+    schedule: "0 2 * * *"
+    command: ["/usr/local/bin/php", "artisan", "schedule:run"]
+    args:
+    - "--no-interaction"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        memory: 256Mi
+    failedJobsHistoryLimit: 3
+    successfulJobsHistoryLimit: 5
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+  - name: cron2
+    enabled: false
+    schedule: "0 5 * * *"
+    command: ["/usr/local/bin/php"]
+    args:
+    - "artisan"
+    - "schedule:run"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 512Mi
+    failedJobsHistoryLimit: 3
+    successfulJobsHistoryLimit: 5
+    concurrencyPolicy: Forbid
+    restartPolicy: OnFailure
+
+  security:
+    serviceAccount:
+      enabled: true
+      annotations: {}
+      clusterWideAccess: false
+      rules:
+      - resources: ["configmaps", "events", "pods", "pods/attach", "pods/exec", "secrets", "services"]
+        verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create", "patch", "delete"]
+    sgPolicy:
+      enabled: false
+      securityGroupId: ""
+    podSecurityContext: {}
+    securityContext: {}
+
+  pvc:
+    enabled: true
+    mountPath: /efs/test
+    subPath: test
+    size: 100Gi
+    accessModes:
+      - ReadWriteMany
+    storageClass: azurefile-csi
+
+  secrets:
+    enabled: false
+    mountPath: /opt/app
+    data:
+      - resourceName: "projects/example/secrets/example/versions/latest"
+        fileName: ".env"

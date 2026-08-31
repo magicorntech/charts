@@ -1,0 +1,41 @@
+suite: quoting
+templates:
+  - templates/cronjobs.yaml
+  - templates/service.yaml
+  - templates/security-group.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: FIXED (B10) - a numeric-looking configMap.name stays a string on re-parse
+    set:
+      global.configMap.name: "123456"
+    asserts:
+      - isType:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].configMap.name
+          type: string
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].configMap.name
+          value: "123456"
+    template: templates/cronjobs.yaml
+
+  - it: service.type stays a string
+    asserts:
+      - isType:
+          path: spec.type
+          type: string
+      - equal:
+          path: spec.type
+          value: ClusterIP
+    template: templates/service.yaml
+
+  - it: FIXED (B10) - a numeric-looking securityGroupId stays a string on re-parse
+    set:
+      global.security.sgPolicy.securityGroupId: "0123456789"
+    asserts:
+      - isType:
+          path: spec.securityGroups.groupIds[0]
+          type: string
+      - equal:
+          path: spec.securityGroups.groupIds[0]
+          value: "0123456789"
+    template: templates/security-group.yaml

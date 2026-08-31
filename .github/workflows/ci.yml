@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["**"]
+    tags: ["*.*.*"]
+
+# A tag push also matches `push: branches` trigger conditions above? No —
+# `branches:` and `tags:` are independent filters within the same `push`
+# event; a tag push only matches the `tags:` filter, a branch push only
+# `branches:`. Both are listed so this workflow runs on every ordinary
+# commit AND on every tag (the tag case matters because
+# release-preflight.yml is a *separate*, parallel signal — see its own
+# comment for why testing the tag itself here too is still worth it).
+
+# No AWS credentials, no OIDC role: this workflow only lints, tests, and
+# renders — it never publishes anything. .devops/buildspec.yml (CodeBuild,
+# triggered directly by the tag-push webhook, outside GitHub Actions
+# entirely) still owns the actual `helm push`.
+
+jobs:
+  guard:
+    name: version-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # full history — git describe needs every tag
+          fetch-tags: true  # belt-and-suspenders: some runners default this off even at fetch-depth 0
+      - run: ci/version-guard.sh --mode=auto
+
+  test:
+    name: test (helm ${{ matrix.helm }})
+    needs: guard
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # README's own documented minimum supported version. No
+          # unittest here — helm-unittest 1.x needs a newer Helm than
+          # this to load at all; render + kubeconform is what "3.10
+          # works" actually means for a consumer anyway.
+          - helm: "3.10.3"
+            unittest: false
+            experimental: false
+          # The exact version .devops/buildspec.yml publishes with —
+          # required, this is the one that has to stay green.
+          - helm: "3.21.4"
+            unittest: true
+            experimental: false
+          # This repo's own dev-machine default. Helm 4 is new enough
+          # that it's advisory-only for now (continue-on-error) — not
+          # yet a promise this chart makes to consumers, but a canary
+          # for when it needs to become one.
+          - helm: "4.2.4"
+            unittest: true
+            experimental: true
+    env:
+      KUBE_VERSIONS: "1.25.0 1.33.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install helm ${{ matrix.helm }}
+        run: |
+          curl -fsSL "https://get.helm.sh/helm-v${{ matrix.helm }}-linux-amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin --strip-components=1 linux-amd64/helm
+          helm version
+
+      - name: install helm-unittest
+        if: matrix.unittest
+        run: |
+          # --verify=false is required on Helm 4: its plugin installer
+          # otherwise rejects this git-source plugin with "plugin source
+          # does not support verification" before it ever gets to
+          # actually cloning it. On Helm 3 the flag does NOT exist at all
+          # -- confirmed directly (`helm plugin install --help`), it is a
+          # hard "unknown flag: --verify" error there, not a harmless
+          # no-op as an earlier version of this comment claimed. Detected
+          # at runtime rather than branched on ${{ matrix.helm }} so this
+          # keeps working correctly if the matrix ever gains another
+          # Helm 3.x or 4.x version.
+          #
+          # Pinned to the exact version this repo's own dev environment
+          # runs (`helm plugin list`) — helm-unittest links Helm's own
+          # render engine in as a Go library, so the plugin build's
+          # embedded Helm version is what actually determines render
+          # behavior, not the Helm CLI on PATH. Bump deliberately, not by
+          # accident.
+          extra_flags=""
+          if helm plugin install --help 2>&1 | grep -q -- "--verify"; then
+            extra_flags="--verify=false"
+          fi
+          # shellcheck disable=SC2086
+          helm plugin install https://github.com/helm-unittest/helm-unittest.git \
+            --version v1.1.2 $extra_flags
+
+      - name: install kubeconform
+        run: |
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
+
+      - run: ci/gate.sh deps
+      - run: ci/gate.sh lint
+      - name: unittest
+        if: matrix.unittest
+        run: ci/gate.sh unittest
+      - run: ci/gate.sh render
+      - run: ci/gate.sh kubeconform
+      - run: ci/gate.sh notes
+      - run: ci/gate.sh destination-guard
+      - run: ci/gate.sh exec-probe-guard
+      - run: ci/gate.sh package-check
+
+      - name: upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-helm-${{ matrix.helm }}
+          path: dist/reports/
+          if-no-files-found: ignore

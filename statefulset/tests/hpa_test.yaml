@@ -1,0 +1,40 @@
+suite: hpa
+templates:
+  - templates/hpa.yaml
+  - templates/statefulset.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: disabled autoscaling renders nothing
+    set:
+      global.autoscaling.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/hpa.yaml
+
+  - it: CPU-only target renders exactly one metric
+    set:
+      global.autoscaling.targetMemoryUtilizationPercentage: null
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 1
+        template: templates/hpa.yaml
+
+  - it: DELIBERATE (not a bug for this pass) - scaleTargetRef.kind is hardcoded Deployment even in the statefulset chart, because hpa.yaml is a shared common/ template with no notion of which workload kind is including it. Autoscaling a StatefulSet is not a supported combination today; enabling it renders an HPA pointing at a Deployment that does not exist.
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+        template: templates/hpa.yaml
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: RELEASE-NAME
+        template: templates/hpa.yaml
+
+  - it: enabling autoscaling still drops replicas from the StatefulSet itself, compounding the dangling-HPA problem above
+    template: templates/statefulset.yaml
+    asserts:
+      - notExists:
+          path: spec.replicas

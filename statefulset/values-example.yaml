@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v1.1.1
+# v2.0.0
 
 global:
   # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp and datacenter. (for now) 
@@ -116,6 +116,13 @@ global:
     certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
     wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
     sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    # AWS only. "http", "https", or "both" (default when unset).
+    listenPorts: both
+    # AWS only. Set to false to disable the automatic HTTP -> HTTPS redirect.
+    sslRedirect: true
+    # AWS only. Overrides the ALB healthcheck path; defaults to
+    # deployment.liveness.httpGet.path when unset.
+    # healthcheckPath: /healthz
     lbId: externalloadBalancerNameHere
     # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
     lbOrder: 100
@@ -137,6 +144,13 @@ global:
     certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
     wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
     sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    # AWS only. "http", "https", or "both" (default when unset).
+    listenPorts: both
+    # AWS only. Set to false to disable the automatic HTTP -> HTTPS redirect.
+    sslRedirect: true
+    # AWS only. Overrides the ALB healthcheck path; defaults to
+    # deployment.liveness.httpGet.path when unset.
+    # healthcheckPath: /healthz
     lbId: internalloadBalancerNameHere
     # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
     lbOrder: 200
@@ -180,6 +194,11 @@ global:
     name: configMapName
     fileName: .env.prod
     mountPath: /var/www/html
+    # Default true (file mount via subPath). A subPath mount is never
+    # refreshed by the kubelet when the ConfigMap changes — set false to
+    # mount the whole directory instead, which the kubelet does keep in
+    # sync, at the cost of only being able to mount one file this way.
+    # useSubPath: true
 
   prehooks:
     # Set true here, if your application has database migrations and you want them to apply before deployment.
@@ -278,3 +297,23 @@ global:
     data:
       - resourceName: "projects/<project_id>/secrets/<secret_name>/versions/latest"
         fileName: ".env"
+  # Plain Kubernetes Secrets support, injected as env vars via secretKeyRef.
+  # Distinct from `secrets` above, which is GCP Secret Manager via a CSI
+  # SecretProviderClass — this expects a real Secret object that already
+  # exists in the same namespace. Two independent groups so a shared,
+  # org-wide secret and a service-specific one can be toggled separately.
+  k8sSecrets:
+    common:
+      enabled: false
+      secretName: "common-secrets"
+      # Each item's `key` is the key inside the Kubernetes Secret; `envName`
+      # is the environment variable name inside the container (can differ).
+      keys:
+        - key: API_KEY
+          envName: API_KEY
+    service:
+      enabled: false
+      secretName: "service-specific-secrets"
+      keys:
+        - key: SERVICE_API_KEY
+          envName: SERVICE_API_KEY

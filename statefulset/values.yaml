@@ -1,0 +1,150 @@
+# Real Helm defaults for the StatefulSet umbrella chart.
+#
+# Every *.enabled defaults to false, every map to {}, every list to [].
+# This file exists purely so an unguarded `.Values.global.X` deref in a
+# template stops nil-pointering when a value isn't supplied — it must
+# never, on its own, cause anything beyond the StatefulSet itself to
+# render. See values-example.yaml for a realistic, fully-populated
+# reference configuration.
+#
+# Unlike the Deployment chart: no `deployment.strategy` key (StatefulSet
+# hardcodes its own updateStrategy) and `pvc` has no `enabled` — a
+# StatefulSet's volumeClaimTemplates are unconditional (README calls PVC
+# mandatory for this chart), so its mountPath/subPath/size/storageClass
+# are always dereferenced directly, never behind a guard.
+global:
+  destination: aws
+
+  # Object name override, highest precedence first. Both null -> plain
+  # .Release.Name, unchanged from before either key existed.
+  fullnameOverride: null
+  nameOverride: null
+
+  deployment:
+    # Whether the Deployment workload object renders at all. Default true
+    # (byte-identical to before P7 existed) -- flip to false only together
+    # with rollout.enabled: true (mutually exclusive, enforced by a `fail`
+    # at render time if both are true).
+    enabled: true
+    image:
+      uri: ""
+      pullPolicy: IfNotPresent
+      imagePullSecrets: []
+      command: []
+      args: []
+    env: []
+    replicaCount: 1
+    resources: {}
+    readiness: {}
+    liveness: {}
+    podAnnotations: {}
+    lifecycle: {}
+    deregistrationTime: 30
+    failSeconds: 600
+    revisionHistory: 10
+    # DNS resolver ndots override (k8s's own implicit default is 5).
+    # Unset/null -> no dnsConfig emitted at all -> byte-identical render to
+    # before this feature existed. Setting it rolls every workload (pod
+    # template hash changes) and changes DNS resolution behavior -- opt-in,
+    # never defaulted.
+    ndots: null
+    # Pod-spec-level overrides — all null by default, reproducing today's
+    # hardcoded literals exactly. podManagementPolicy/updateStrategyPartition
+    # only affect the statefulset chart (no equivalent concept on a
+    # Deployment/Rollout); dnsPolicy/schedulerName apply to every pod spec
+    # in both charts.
+    dnsPolicy: null
+    schedulerName: null
+    podManagementPolicy: null
+    updateStrategyPartition: null
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints: []
+
+  # Argo Rollouts has no StatefulSet controller -- this key exists here
+  # only so the values contract stays documented identically across all
+  # three charts (see common/values.yaml and deployment/values.yaml for
+  # the real, deployment-chart-only rollout.* schema). Setting this true
+  # on the statefulset chart fails the render immediately (see
+  # charts-common.rolloutUnsupported), rather than silently doing nothing.
+  rollout:
+    enabled: false
+
+  service:
+    enabled: false
+    annotations: {}
+    type: ClusterIP
+    ports: {}
+
+  ingress: []
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilizationPercentage: null
+    targetMemoryUtilizationPercentage: null
+    behavior: {}
+
+  configMap:
+    enabled: false
+    name: ""
+    fileName: ""
+    mountPath: ""
+
+  prehooks:
+    dbMigrations:
+      enabled: false
+      command: []
+      args: []
+    otherPrehooks:
+      enabled: false
+      command: []
+      args: []
+
+  cronjobs: []
+
+  security:
+    serviceAccount:
+      enabled: false
+      annotations: {}
+      clusterWideAccess: false
+      # Only meaningful when clusterWideAccess is true -- overrides the
+      # ClusterRole/ClusterRoleBinding's own name (normally the same as
+      # the ServiceAccount's). A ClusterRole is cluster-scoped, so two
+      # releases sharing a release name in different namespaces would
+      # otherwise collide on the exact same object. Null -> unchanged
+      # from before this key existed.
+      clusterRoleName: null
+      rules: []
+    sgPolicy:
+      enabled: false
+      securityGroupId: ""
+    podSecurityContext: {}
+    securityContext: {}
+
+  pvc:
+    mountPath: ""
+    subPath: ""
+    size: ""
+    # Empty -> ["ReadWriteOnce"], today's hardcoded literal (unlike the
+    # deployment chart, this has no `enabled` toggle -- volumeClaimTemplates
+    # are unconditional here).
+    accessModes: []
+    storageClass: ""
+
+  secrets:
+    enabled: false
+    mountPath: ""
+    data: []
+
+  k8sSecrets:
+    common:
+      enabled: false
+      secretName: ""
+      keys: []
+    service:
+      enabled: false
+      secretName: ""
+      keys: []

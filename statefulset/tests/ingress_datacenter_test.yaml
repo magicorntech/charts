@@ -1,0 +1,42 @@
+suite: ingress datacenter (behaviorally identical to gcp)
+templates:
+  - templates/ingress.yaml
+values:
+  - ../../ci/scenarios/statefulset/datacenter-full.yaml
+tests:
+  - it: className flows through to ingressClassName
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: tls block renders when the ingress entry sets tls
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: hostname-tls
+
+  - it: renders only user-supplied annotations, no platform-injected ones
+    set:
+      global.ingress:
+        - enabled: true
+          annotations:
+            team: platform
+          className: nginx
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            team: platform

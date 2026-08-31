@@ -1,0 +1,89 @@
+suite: bare defaults (no -f at all)
+# B1's permanent regression test: this repo shipped with NO values.yaml
+# at all until Phase 1, so every unguarded .Values.global.X deref
+# nil-pointered on a bare `helm template`. With values.yaml's defaults
+# alone (destination: aws, every *.enabled: false), only the Deployment
+# itself should render — nothing else.
+templates:
+  - templates/deployment.yaml
+  - templates/pvc.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/service.yaml
+  - templates/ingress.yaml
+  - templates/ingress.yaml
+  - templates/ingress.yaml
+  - templates/ingress.yaml
+  - templates/hpa.yaml
+  - templates/cronjobs.yaml
+  - templates/migrations.yaml
+  - templates/other-prehooks.yaml
+  - templates/role.yaml
+  - templates/role-binding.yaml
+  - templates/service-account.yaml
+  - templates/security-group.yaml
+  - templates/secrets-gcp.yaml
+tests:
+  - it: renders exactly the Deployment, nothing else
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: templates/deployment.yaml
+      - isKind:
+          of: Deployment
+        template: templates/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/pvc.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/service.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/service.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/service.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/service.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/ingress.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/ingress.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/ingress.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/ingress.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/hpa.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/cronjobs.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/migrations.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/other-prehooks.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/role.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/role-binding.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/service-account.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/security-group.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/secrets-gcp.yaml

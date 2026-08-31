@@ -1,0 +1,128 @@
+suite: statefulset
+templates:
+  - templates/statefulset.yaml
+  - templates/service.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: BUG (B5) - serviceName points at a "-headless" Service that no template actually creates
+    asserts:
+      - equal:
+          path: spec.serviceName
+          value: RELEASE-NAME-headless
+        template: templates/statefulset.yaml
+      # the one Service this chart does render (below) is never named
+      # "-headless" — stable pod DNS is broken until Phase 5c adds a real
+      # headless Service.
+
+  - it: the one Service this chart does render is named plainly, not "-headless"
+    set:
+      global.service.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+        template: templates/service.yaml
+
+  - it: hardcoded StatefulSet-specific spec fields
+    asserts:
+      - equal:
+          path: spec.podManagementPolicy
+          value: OrderedReady
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.updateStrategy.type
+          value: RollingUpdate
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.updateStrategy.rollingUpdate.partition
+          value: 0
+        template: templates/statefulset.yaml
+
+  - it: volumeClaimTemplates carries the pvc size/storageClass, always ReadWriteOnce
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: storage
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.accessModes
+          value: ["ReadWriteOnce"]
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 10Gi
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: gp2
+        template: templates/statefulset.yaml
+
+  - it: the storage volumeMount is always present, unlike the deployment chart's optional pvc mount
+    set:
+      global.configMap.enabled: false
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: storage
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /data
+        template: templates/statefulset.yaml
+
+  - it: NEW (P4) - the configMap mount (after the always-present storage mount) uses subPath by default
+    set:
+      global.configMap.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[1].subPath
+          value: .env.prod
+        template: templates/statefulset.yaml
+
+  - it: NEW (P4) - useSubPath=false drops subPath from the configMap mount, leaving the storage mount untouched
+    set:
+      global.configMap.enabled: true
+      global.configMap.useSubPath: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[1].subPath
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: storage
+        template: templates/statefulset.yaml
+
+  - it: NEW (P6) - k8sSecrets disabled by default injects no extra env entries
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 1
+        template: templates/statefulset.yaml
+
+  - it: NEW (P6) - k8sSecrets.common and .service both inject, independently toggleable
+    set:
+      global.k8sSecrets.common.enabled: true
+      global.k8sSecrets.common.secretName: shared-secrets
+      global.k8sSecrets.common.keys:
+        - key: API_KEY
+          envName: API_KEY
+      global.k8sSecrets.service.enabled: true
+      global.k8sSecrets.service.secretName: my-service-secrets
+      global.k8sSecrets.service.keys:
+        - key: SERVICE_TOKEN
+          envName: SERVICE_TOKEN
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 3
+        template: templates/statefulset.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SERVICE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: my-service-secrets
+                key: SERVICE_TOKEN
+        template: templates/statefulset.yaml

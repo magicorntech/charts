@@ -1,0 +1,1 @@
+{{- include "charts-common.prehookJob" (dict "root" $ "spec" .Values.global.prehooks.dbMigrations "suffix" "migrations" "weight" "-100") -}}

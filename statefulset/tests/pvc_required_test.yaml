@@ -1,0 +1,17 @@
+suite: pvc (statefulset umbrella — mandatory, no enabled flag)
+templates:
+  - templates/statefulset.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: pvc is unconditional — there is no enabled flag to turn it off
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+
+  - it: an empty pvc.size renders an empty (invalid at apply time) storage request, since nothing guards it the way the deployment chart's pvc.yaml does with `required`
+    set:
+      global.pvc.size: ""
+    asserts:
+      - isNullOrEmpty:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage

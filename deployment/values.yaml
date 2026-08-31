@@ -1,0 +1,190 @@
+# Real Helm defaults for the Deployment umbrella chart.
+#
+# Every *.enabled defaults to false, every map to {}, every list to [].
+# This file exists purely so an unguarded `.Values.global.X` deref in a
+# template stops nil-pointering when a value isn't supplied — it must
+# never, on its own, cause anything beyond the Deployment itself to
+# render. See values-example.yaml for a realistic, fully-populated
+# reference configuration.
+global:
+  # Target platform. Selects which Service/Ingress flavour renders and
+  # gates the platform-specific objects (SecurityGroupPolicy on aws,
+  # SecretProviderClass on gcp). "aws" is the shipped example's own
+  # default — an empty string would fail Helm's template engine outright
+  # (`eq nil "aws"` errors, it doesn't just evaluate false), which is
+  # exactly the failure this file exists to prevent.
+  destination: aws
+
+  # Object name override, highest precedence first. Both null -> plain
+  # .Release.Name, unchanged from before either key existed.
+  fullnameOverride: null
+  nameOverride: null
+
+  deployment:
+    # Whether the Deployment workload object renders at all. Default true
+    # (byte-identical to before P7 existed) -- flip to false only together
+    # with rollout.enabled: true (mutually exclusive, enforced by a `fail`
+    # at render time if both are true).
+    enabled: true
+    image:
+      uri: ""
+      pullPolicy: IfNotPresent
+      imagePullSecrets: []
+      command: []
+      args: []
+    env: []
+    replicaCount: 1
+    resources: {}
+    readiness: {}
+    liveness: {}
+    podAnnotations: {}
+    strategy: {}
+    lifecycle: {}
+    deregistrationTime: 30
+    failSeconds: 600
+    revisionHistory: 10
+    # DNS resolver ndots override (k8s's own implicit default is 5).
+    # Unset/null -> no dnsConfig emitted at all -> byte-identical render to
+    # before this feature existed. Setting it rolls every workload (pod
+    # template hash changes) and changes DNS resolution behavior -- opt-in,
+    # never defaulted.
+    ndots: null
+    # Pod-spec-level overrides — all null by default, reproducing today's
+    # hardcoded literals exactly. podManagementPolicy/updateStrategyPartition
+    # only affect the statefulset chart (no equivalent concept on a
+    # Deployment/Rollout); dnsPolicy/schedulerName apply to every pod spec
+    # in both charts.
+    dnsPolicy: null
+    schedulerName: null
+    podManagementPolicy: null
+    updateStrategyPartition: null
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints: []
+
+  # Argo Rollouts (P7) -- deployment.yaml's alternative, mutually exclusive
+  # with the Deployment above. Off by default; enabling it renders a
+  # Rollout instead of a Deployment (see charts-common.validateWorkloadMode
+  # for the mutual-exclusion guard) with the exact same pod template, plus
+  # HPA/Ingress wiring that follows it automatically once enabled.
+  rollout:
+    enabled: false
+    # "canary" or "blueGreen".
+    strategyType: canary
+    canary:
+      maxSurge: null
+      maxUnavailable: null
+      # Creates a preview/canary Service scoped to canary pods only,
+      # named <release>-preview by default (override via canaryServiceName).
+      createCanaryService: true
+      canaryServiceName: ""
+      steps: []
+      trafficRouting:
+        enabled: false
+        # alb, istio, or nginx.
+        type: alb
+        alb:
+          # Which configured global.ingress[] entry's own computed name
+          # (see charts-common.ingress.name) Argo should manage traffic
+          # weighting on. Empty -> the first configured ingress entry
+          # (index 0) -- the common case, since a canary rollout backed by
+          # more than one ingress is rare enough that the simple default
+          # would otherwise silently target the wrong one. Set this
+          # explicitly whenever more than one ingress entry is configured.
+          ingressName: ""
+      analysis:
+        enabled: false
+        templateName: ""
+        args: []
+    blueGreen:
+      activeService: ""
+      previewService: ""
+      autoPromotionEnabled: true
+      autoPromotionSeconds: null
+      scaleDownDelaySeconds: null
+      previewReplicaCount: null
+      analysis:
+        enabled: false
+        templateName: ""
+        args: []
+    # Same meaning as deployment.revisionHistory above, kept as its own
+    # field (not shared) since a Rollout and a Deployment are never both
+    # active at once -- there is nothing to keep in sync.
+    revisionHistory: 10
+
+  service:
+    enabled: false
+    annotations: {}
+    type: ClusterIP
+    ports: {}
+
+  ingress: []
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilizationPercentage: null
+    targetMemoryUtilizationPercentage: null
+    behavior: {}
+
+  configMap:
+    enabled: false
+    name: ""
+    fileName: ""
+    mountPath: ""
+
+  prehooks:
+    dbMigrations:
+      enabled: false
+      command: []
+      args: []
+    otherPrehooks:
+      enabled: false
+      command: []
+      args: []
+
+  cronjobs: []
+
+  security:
+    serviceAccount:
+      enabled: false
+      annotations: {}
+      clusterWideAccess: false
+      # Only meaningful when clusterWideAccess is true -- overrides the
+      # ClusterRole/ClusterRoleBinding's own name (normally the same as
+      # the ServiceAccount's). A ClusterRole is cluster-scoped, so two
+      # releases sharing a release name in different namespaces would
+      # otherwise collide on the exact same object. Null -> unchanged
+      # from before this key existed.
+      clusterRoleName: null
+      rules: []
+    sgPolicy:
+      enabled: false
+      securityGroupId: ""
+    podSecurityContext: {}
+    securityContext: {}
+
+  pvc:
+    enabled: false
+    mountPath: ""
+    subPath: ""
+    size: ""
+    accessModes: []
+    storageClass: ""
+
+  secrets:
+    enabled: false
+    mountPath: ""
+    data: []
+
+  k8sSecrets:
+    common:
+      enabled: false
+      secretName: ""
+      keys: []
+    service:
+      enabled: false
+      secretName: ""
+      keys: []

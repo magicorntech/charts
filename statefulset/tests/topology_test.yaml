@@ -1,0 +1,50 @@
+suite: topologySpreadConstraints
+templates:
+  - templates/statefulset.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: single constraint gets a labelSelector matching the statefulset's own selector
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME
+
+  - it: FIXED (B4) - with two constraints, BOTH get a labelSelector, not just the last one
+    set:
+      global.deployment.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[1].labelSelector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME
+
+  - it: FIXED (B4) - a user-supplied labelSelector is preserved verbatim, not overwritten with a duplicate key
+    set:
+      global.deployment.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              custom: "yes"
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            custom: "yes"
+
+  - it: empty list omits the key entirely
+    set:
+      global.deployment.topologySpreadConstraints: []
+    asserts:
+      - notExists:
+          path: spec.template.spec.topologySpreadConstraints

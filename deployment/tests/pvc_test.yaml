@@ -1,0 +1,39 @@
+suite: pvc (deployment umbrella — optional)
+templates:
+  - templates/pvc.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: enabled renders a PersistentVolumeClaim
+    asserts:
+      - isKind:
+          of: PersistentVolumeClaim
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-pvc
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-200"
+      - equal:
+          path: spec.accessModes
+          value: ["ReadWriteMany"]
+      - equal:
+          path: spec.storageClassName
+          value: azurefile-csi
+      - equal:
+          path: spec.resources.requests.storage
+          value: 100Gi
+
+  - it: disabled renders nothing
+    set:
+      global.pvc.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: missing size fails with a clear message
+    set:
+      global.pvc.size: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: "pvc.size is required"

@@ -1,0 +1,190 @@
+suite: ingress aws
+templates:
+  - templates/ingress.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: uses the hardcoded alb ingressClassName
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: alb
+
+  - it: derives ALB healthcheck annotations from the liveness probe
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-path"]
+          value: /healthz
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-interval-seconds"]
+          value: "15"
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-timeout-seconds"]
+          value: "5"
+
+  - it: wafId null omits the wafv2 annotation
+    asserts:
+      - notExists:
+          path: metadata.annotations["alb.ingress.kubernetes.io/wafv2-acl-arn"]
+
+  - it: wafId set renders the wafv2 annotation
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: "arn:aws:wafv2:eu-west-1:000000000000:regional/webacl/example/id"
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/wafv2-acl-arn"]
+          value: "arn:aws:wafv2:eu-west-1:000000000000:regional/webacl/example/id"
+
+  # FIXED (B9) - a liveness probe without httpGet no longer nil-pointers
+  # the whole render. NOT testable here: helm-unittest's set:/values:
+  # both deep-merge into the suite's base fixture the same way Helm's own
+  # -f layering does, and there is no way to actually clear a nested key
+  # that a base fixture already set — explicitly nulling it
+  # (global.deployment.liveness.httpGet: null) doesn't delete just that
+  # key, it collapses the whole `liveness` value to nil one level up,
+  # which then breaks the *other* liveness-derived annotations this same
+  # suite already asserts on. Covered instead by ci/gate.sh's
+  # cmd_exec_probe_guard, which renders directly via `helm template`
+  # against a values file with no httpGet key from the start.
+
+  - it: NEW - ingress[].healthcheckPath overrides the liveness-derived path when set
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          healthcheckPath: /custom-health
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-path"]
+          value: /custom-health
+
+  - it: NEW (P2) - listenPorts unset defaults to both HTTP and HTTPS, identical to the old hardcoded behavior
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/listen-ports"]
+          value: '[{"HTTP": 80}, {"HTTPS": 443}]'
+
+  - it: NEW (P2) - listenPorts=http restricts the ALB to port 80 only
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          listenPorts: http
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/listen-ports"]
+          value: '[{"HTTP": 80}]'
+
+  - it: NEW (P2) - listenPorts=https restricts the ALB to port 443 only
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          listenPorts: https
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/listen-ports"]
+          value: '[{"HTTPS": 443}]'
+
+  - it: NEW (P3) - sslRedirect unset still redirects, identical to the old hardcoded behavior
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/ssl-redirect"]
+          value: "443"
+
+  - it: NEW (P3) - sslRedirect=false opts out of the HTTP->HTTPS redirect
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslRedirect: false
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - notExists:
+          path: metadata.annotations["alb.ingress.kubernetes.io/ssl-redirect"]
+
+  - it: backend uses the service.ports.one.outer port
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 80
+
+  - it: at kube 1.25 the backend uses the modern service.name/port.number shape and a real pathType
+    capabilities:
+      majorVersion: 1
+      minorVersion: 25
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME
+      - notExists:
+          path: spec.rules[0].http.paths[0].backend.serviceName

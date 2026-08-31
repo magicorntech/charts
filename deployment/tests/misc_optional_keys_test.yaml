@@ -1,0 +1,155 @@
+suite: misc optional keys (5d)
+templates:
+  - templates/deployment.yaml
+  - templates/ingress.yaml
+  - templates/role.yaml
+  - templates/role-binding.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: unset by default — name is plain RELEASE-NAME, ingress naming/ports unchanged, RBAC name is the release name
+    set:
+      global.security.serviceAccount.enabled: true
+      global.security.serviceAccount.clusterWideAccess: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+        template: templates/deployment.yaml
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-1
+        template: templates/ingress.yaml
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+        template: templates/role.yaml
+
+  - it: NEW - global.fullnameOverride replaces the computed name everywhere
+    set:
+      global.fullnameOverride: custom-name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-name
+        template: templates/deployment.yaml
+
+  - it: NEW - global.nameOverride replaces the computed name when fullnameOverride is unset
+    set:
+      global.nameOverride: custom-name2
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-name2
+        template: templates/deployment.yaml
+
+  - it: NEW - fullnameOverride wins over nameOverride when both are set
+    set:
+      global.nameOverride: from-name-override
+      global.fullnameOverride: from-fullname-override
+    asserts:
+      - equal:
+          path: metadata.name
+          value: from-fullname-override
+        template: templates/deployment.yaml
+
+  - it: NEW - an ingress entry's own `name` overrides the deliberate position/length-based naming
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          name: my-custom-ingress
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.name
+          value: my-custom-ingress
+        template: templates/ingress.yaml
+
+  - it: NEW - an ingress entry's servicePortName routes its rule to a different service.ports key
+    set:
+      global.service.ports:
+        one:
+          inner: 80
+          outer: 80
+        admin:
+          inner: 9000
+          outer: 9000
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          servicePortName: admin
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 9000
+        template: templates/ingress.yaml
+
+  - it: NEW - global.security.serviceAccount.clusterRoleName overrides the ClusterRole/ClusterRoleBinding name (and roleRef stays in sync)
+    set:
+      global.security.serviceAccount.enabled: true
+      global.security.serviceAccount.clusterWideAccess: true
+      global.security.serviceAccount.clusterRoleName: my-cluster-role
+    asserts:
+      - equal:
+          path: metadata.name
+          value: my-cluster-role
+        template: templates/role.yaml
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+        template: templates/role-binding.yaml
+      - equal:
+          path: roleRef.name
+          value: my-cluster-role
+        template: templates/role-binding.yaml
+
+  - it: NEW - clusterRoleName has no effect when clusterWideAccess is false (a namespaced Role can't collide across namespaces)
+    set:
+      global.security.serviceAccount.enabled: true
+      global.security.serviceAccount.clusterWideAccess: false
+      global.security.serviceAccount.clusterRoleName: my-cluster-role
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+        template: templates/role.yaml
+
+  - it: NEW - global.deployment.dnsPolicy/schedulerName override today's hardcoded literals
+    set:
+      global.deployment.dnsPolicy: ClusterFirstWithHostNet
+      global.deployment.schedulerName: my-scheduler
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.template.spec.schedulerName
+          value: my-scheduler
+        template: templates/deployment.yaml

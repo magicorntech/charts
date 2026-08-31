@@ -1,0 +1,34 @@
+suite: ingress hcp
+templates:
+  - templates/ingress.yaml
+values:
+  - ../../ci/scenarios/statefulset/hcp-full.yaml
+# NOT tested here: a user annotation colliding with a hardcoded elb.*
+# key. Same root cause as service-aws.yaml's collision case — this
+# template splices raw YAML with no dedup, so a colliding key produces a
+# literal duplicate-key unmarshal error today, not "platform wins". Real
+# precedence (platform wins here, the opposite of Service's user-wins)
+# only becomes true, and testable, once Phase 4 replaces the splice with
+# a real `merge (dict) $plat $user`.
+tests:
+  - it: uses the hardcoded cce ingressClassName
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: cce
+
+  - it: renders the elb.* CCE annotations
+    asserts:
+      - equal:
+          path: metadata.annotations["kubernetes.io/elb.class"]
+          value: performance
+      - equal:
+          path: metadata.annotations["kubernetes.io/elb.port"]
+          value: "443"
+
+  - it: renders the per-path url-match-mode property
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].property["ingress.beta.kubernetes.io/url-match-mode"]
+          value: STARTS_WITH
+

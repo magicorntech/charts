@@ -1,0 +1,13 @@
+suite: service-headless — empty ports (bare defaults, no -f)
+# Its own file, deliberately with no suite-level `values:` -- helm-unittest's
+# set:/values: deep-merge against a populated base fixture can't clear an
+# already-populated map back to empty (same gotcha `defaults_test.yaml`
+# exists to work around), so this needs the chart's own bare
+# `service.ports: {}` default from the start, not an attempt to unset it.
+templates:
+  - templates/service-headless.yaml
+tests:
+  - it: empty service.ports renders zero documents (additive, never mandatory)
+    asserts:
+      - hasDocuments:
+          count: 0

@@ -1,0 +1,17 @@
+suite: rollout (P7 — Argo Rollouts has no StatefulSet controller)
+templates:
+  - templates/statefulset.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: unset by default — StatefulSet still renders, no rollout-related change
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: FIXED (§B6 bug 3) - global.rollout.enabled fails loudly rather than silently doing nothing
+    set:
+      global.rollout.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "global.rollout.enabled has no effect on the statefulset chart — Argo Rollouts has no StatefulSet controller"
