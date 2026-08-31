@@ -1,0 +1,108 @@
+# Smallest realistic deployment: one Service, one Ingress, nothing optional.
+global:
+  destination: aws
+  deployment:
+    image:
+      uri: registry.example.com/app:1.0.0
+      pullPolicy: IfNotPresent
+      imagePullSecrets: []
+    env: []
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        memory: 128Mi
+    readiness:
+      httpGet:
+        port: one
+        path: /healthz
+      failureThreshold: 2
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    liveness:
+      httpGet:
+        port: one
+        path: /healthz
+      failureThreshold: 2
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    podAnnotations: {}
+    lifecycle: {}
+    deregistrationTime: 30
+    failSeconds: 300
+    revisionHistory: 5
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints: []
+  service:
+    enabled: true
+    annotations: {}
+    type: ClusterIP
+    ports:
+      one:
+        inner: 80
+        outer: 80
+  ingress:
+  - enabled: true
+    annotations: {}
+    className: null
+    idleTimeout: 60
+    scheme: internet-facing
+    certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/00000000-0000-0000-0000-000000000000
+    wafId: null
+    sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    lbId: minimal-lb
+    lbOrder: 100
+    hosts:
+    - host: minimal.example.com
+      paths:
+      - path: /
+        pathType: Prefix
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilizationPercentage: 0
+    behavior: {}
+  configMap:
+    enabled: false
+    name: ""
+    fileName: ""
+    mountPath: ""
+  prehooks:
+    dbMigrations:
+      enabled: false
+      command: []
+      args: []
+    otherPrehooks:
+      enabled: false
+      command: []
+      args: []
+  cronjobs: []
+  security:
+    serviceAccount:
+      enabled: false
+      annotations: {}
+      clusterWideAccess: false
+      rules: []
+    sgPolicy:
+      enabled: false
+      securityGroupId: ""
+    podSecurityContext: {}
+    securityContext: {}
+  pvc:
+    mountPath: /data
+    subPath: ""
+    size: 10Gi
+    storageClass: gp2
+  secrets:
+    enabled: false
+    mountPath: ""
+    data: []

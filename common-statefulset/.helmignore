@@ -21,3 +21,14 @@
 .idea/
 *.tmproj
 .vscode/
+
+# --- CI / test fixtures: never ship to ECR Public ---
+tests/
+*_test.yaml
+__snapshot__/
+ci/
+.github/
+Makefile
+hack/
+dist/
+/*.tgz
