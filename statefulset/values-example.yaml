@@ -194,6 +194,11 @@ global:
     name: configMapName
     fileName: .env.prod
     mountPath: /var/www/html
+    # Default true (file mount via subPath). A subPath mount is never
+    # refreshed by the kubelet when the ConfigMap changes — set false to
+    # mount the whole directory instead, which the kubelet does keep in
+    # sync, at the cost of only being able to mount one file this way.
+    # useSubPath: true
 
   prehooks:
     # Set true here, if your application has database migrations and you want them to apply before deployment.

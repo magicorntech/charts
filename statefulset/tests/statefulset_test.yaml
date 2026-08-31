@@ -70,3 +70,25 @@ tests:
           path: spec.template.spec.containers[0].volumeMounts[0].mountPath
           value: /data
         template: charts/charts-common-statefulset/templates/statefulset.yaml
+
+  - it: NEW (P4) - the configMap mount (after the always-present storage mount) uses subPath by default
+    set:
+      global.configMap.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[1].subPath
+          value: .env.prod
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+
+  - it: NEW (P4) - useSubPath=false drops subPath from the configMap mount, leaving the storage mount untouched
+    set:
+      global.configMap.enabled: true
+      global.configMap.useSubPath: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[1].subPath
+        template: charts/charts-common-statefulset/templates/statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: storage
+        template: charts/charts-common-statefulset/templates/statefulset.yaml

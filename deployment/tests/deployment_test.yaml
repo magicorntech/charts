@@ -78,3 +78,16 @@ tests:
       - equal:
           path: spec.template.spec.imagePullSecrets[0].name
           value: regcred
+
+  - it: NEW (P4) - configMap mount uses subPath by default (unaffected by ConfigMap updates until the pod restarts)
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath
+          value: .env.prod
+
+  - it: NEW (P4) - useSubPath=false switches to a directory mount, dropping subPath so kubelet propagates ConfigMap updates live
+    set:
+      global.configMap.useSubPath: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath

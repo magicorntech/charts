@@ -85,3 +85,28 @@ tests:
               volumeAttributes:
                 secretProviderClass: RELEASE-NAME
         template: charts/charts-common/templates/migrations.yaml
+
+  - it: NEW (P4) - configMap mount uses subPath by default in both migrations and other-prehooks
+    set:
+      global.prehooks.otherPrehooks.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath
+          value: .env.prod
+        template: charts/charts-common/templates/migrations.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath
+          value: .env.prod
+        template: charts/charts-common/templates/other-prehooks.yaml
+
+  - it: NEW (P4) - useSubPath=false drops subPath from the configMap mount in both
+    set:
+      global.prehooks.otherPrehooks.enabled: true
+      global.configMap.useSubPath: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath
+        template: charts/charts-common/templates/migrations.yaml
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts[0].subPath
+        template: charts/charts-common/templates/other-prehooks.yaml
