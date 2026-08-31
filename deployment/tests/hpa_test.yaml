@@ -45,12 +45,12 @@ tests:
           path: spec.metrics
           count: 2
 
-  - it: BUG (B7) - neither target set renders an empty metrics key, which the real API server rejects (HPA requires >=1 metric)
+  - it: FIXED (B7) - neither target set omits the metrics key entirely, instead of emitting an empty one the real API server would reject (HPA requires >=1 metric)
     set:
       global.autoscaling.targetCPUUtilizationPercentage: null
       global.autoscaling.targetMemoryUtilizationPercentage: null
     asserts:
-      - isNullOrEmpty:
+      - notExists:
           path: spec.metrics
 
   - it: DELIBERATE - scaleTargetRef.kind is hardcoded Deployment, even in the deployment umbrella (unremarkable here; see the statefulset suite for why this matters)

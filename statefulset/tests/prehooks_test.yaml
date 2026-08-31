@@ -47,11 +47,11 @@ tests:
           value: ["manage.py", "migrate", "--noinput"]
         template: charts/charts-common/templates/migrations.yaml
 
-  - it: BUG (B11) - the container name is the chart name, not the release name
+  - it: FIXED (B11) - the container name is the release name, not the chart name
     asserts:
       - equal:
           path: spec.template.spec.containers[0].name
-          value: charts-common
+          value: RELEASE-NAME
         template: charts/charts-common/templates/migrations.yaml
 
   - it: both disabled renders neither job

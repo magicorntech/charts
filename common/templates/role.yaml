@@ -11,10 +11,14 @@ metadata:
   {{ if not .Values.global.security.serviceAccount.clusterWideAccess -}}
   namespace: {{ .Release.Namespace | quote }}
   {{- end }}
+{{- if .Values.global.security.serviceAccount.rules }}
 rules:
-{{ range .Values.global.security.serviceAccount.rules }}
+{{- range .Values.global.security.serviceAccount.rules }}
 - apiGroups: {{ (default (list "") .apiGroups) | toJson }}
   resources: {{ (default (list "*") .resources) | toJson }}
   verbs: {{ (default (list "*") .verbs) | toJson }}
+{{- end }}
+{{- else }}
+rules: []
 {{- end }}
 {{- end -}}

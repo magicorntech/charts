@@ -18,7 +18,9 @@ metadata:
   annotations:
     {{- toYaml $ingress.annotations | nindent 4 }}
 spec:
-  ingressClassName: {{ $ingress.className }}
+  {{- with $ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
   {{- if $ingress.tls }}
   tls:
     {{- range $ingress.tls }}
@@ -26,7 +28,7 @@ spec:
         {{- range .hosts }}
         - {{ . | quote }}
         {{- end }}
-      secretName: {{ .secretName }}
+      secretName: {{ .secretName | quote }}
     {{- end }}
   {{- end }}
   rules:
@@ -35,9 +37,9 @@ spec:
       http:
         paths:
           {{- range .paths }}
-          - path: {{ .path }}
+          - path: {{ .path | quote }}
             {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
-            pathType: {{ .pathType }}
+            pathType: {{ .pathType | quote }}
             {{- end }}
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}

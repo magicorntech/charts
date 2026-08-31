@@ -10,7 +10,7 @@ tests:
           path: spec.ingressClassName
           value: gce
 
-  - it: className null renders an empty/null ingressClassName (today's unquoted behavior)
+  - it: FIXED (B10) - className null omits ingressClassName entirely, instead of quoting nil into an invalid "" class reference
     set:
       global.ingress:
         - enabled: true
@@ -29,7 +29,7 @@ tests:
                 - path: /
                   pathType: Prefix
     asserts:
-      - isNullOrEmpty:
+      - notExists:
           path: spec.ingressClassName
 
   - it: tls block renders when the ingress entry sets tls

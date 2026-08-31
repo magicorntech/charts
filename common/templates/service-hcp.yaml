@@ -14,7 +14,7 @@ spec:
   type: ClusterIP
   clusterIP: None
   {{- else }}
-  type: {{ .Values.global.service.type }}
+  type: {{ .Values.global.service.type | quote }}
   {{- end }}
   ports:
     {{- range $key, $val := .Values.global.service.ports }}

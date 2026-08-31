@@ -25,7 +25,9 @@ spec:
           imagePullSecrets:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          serviceAccountName: {{ include "charts-common.serviceAccountName" . }}
+          {{- with include "charts-common.serviceAccountName" . }}
+          serviceAccountName: {{ . }}
+          {{- end }}
           securityContext:
             {{- toYaml .Values.global.security.podSecurityContext | nindent 12 }}
           {{- if or .Values.global.configMap.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
@@ -33,10 +35,10 @@ spec:
             {{- if .Values.global.configMap.enabled }}
             - name: app-config
               configMap:
-                name: {{ .Values.global.configMap.name }}
+                name: {{ .Values.global.configMap.name | quote }}
                 items:
-                  - key: {{ .Values.global.configMap.fileName }}
-                    path: {{ .Values.global.configMap.fileName }}
+                  - key: {{ .Values.global.configMap.fileName | quote }}
+                    path: {{ .Values.global.configMap.fileName | quote }}
                 defaultMode: 420
             {{- end }}
             {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
@@ -51,11 +53,11 @@ spec:
           containers:
           - name: {{ $job.name }}
             image: "{{ .Values.global.deployment.image.uri }}"
-            imagePullPolicy: {{ .Values.global.deployment.image.pullPolicy }}
+            imagePullPolicy: {{ .Values.global.deployment.image.pullPolicy | quote }}
             env:
               {{- toYaml .Values.global.deployment.env | nindent 12 }}
-            {{- if $job.command }}
-            command: {{ $job.command }}
+            {{- with $job.command }}
+            command: {{ toYaml . | nindent 12 }}
             {{- end }}
             {{- with $job.args }}
             args: {{ toYaml . | nindent 12 }}
@@ -67,8 +69,8 @@ spec:
               {{- if .Values.global.configMap.enabled }}
               - name: app-config
                 readOnly: true
-                mountPath: {{ .Values.global.configMap.mountPath }}
-                subPath: {{ .Values.global.configMap.fileName }}
+                mountPath: {{ .Values.global.configMap.mountPath | quote }}
+                subPath: {{ .Values.global.configMap.fileName | quote }}
               {{- end }}
               {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
               {{- range .Values.global.secrets.data }}

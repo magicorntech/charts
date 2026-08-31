@@ -29,7 +29,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "charts-common-deployment.serviceAccountName" . }}
+      {{- with include "charts-common-deployment.serviceAccountName" . }}
+      serviceAccountName: {{ . }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.global.security.podSecurityContext | nindent 8 }}
       {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
@@ -37,10 +39,10 @@ spec:
         {{- if .Values.global.configMap.enabled }}
         - name: app-config
           configMap:
-            name: {{ .Values.global.configMap.name }}
+            name: {{ .Values.global.configMap.name | quote }}
             items:
-              - key: {{ .Values.global.configMap.fileName }}
-                path: {{ .Values.global.configMap.fileName }}
+              - key: {{ .Values.global.configMap.fileName | quote }}
+                path: {{ .Values.global.configMap.fileName | quote }}
             defaultMode: 420
         {{- end }}
         {{- if .Values.global.pvc.enabled }}
@@ -61,7 +63,7 @@ spec:
       containers:
         - name: {{ include "charts-common-deployment.name" . }}
           image: "{{ .Values.global.deployment.image.uri }}"
-          imagePullPolicy: {{ .Values.global.deployment.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.global.deployment.image.pullPolicy | quote }}
           {{- if .Values.global.deployment.image.command }}
           command: {{- toYaml .Values.global.deployment.image.command | nindent 12 }}
           {{- end }}
@@ -81,13 +83,13 @@ spec:
             {{- if .Values.global.configMap.enabled }}
             - name: app-config
               readOnly: true
-              mountPath: {{ .Values.global.configMap.mountPath }}
-              subPath: {{ .Values.global.configMap.fileName }}
+              mountPath: {{ .Values.global.configMap.mountPath | quote }}
+              subPath: {{ .Values.global.configMap.fileName | quote }}
             {{- end }}
             {{- if .Values.global.pvc.enabled }}
             - name: storage
-              mountPath: {{ .Values.global.pvc.mountPath }}
-              subPath: {{ .Values.global.pvc.subPath }}
+              mountPath: {{ .Values.global.pvc.mountPath | quote }}
+              subPath: {{ .Values.global.pvc.subPath | quote }}
               readOnly: false
             {{- end }}
             {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
@@ -138,8 +140,12 @@ spec:
       {{- end }}
       {{- with .Values.global.deployment.topologySpreadConstraints }}
       topologySpreadConstraints:
-        {{- toYaml . | nindent 8 }}
+        {{- range $c := . }}
+        - {{- toYaml $c | nindent 10 }}
+          {{- if not $c.labelSelector }}
           labelSelector:
             matchLabels:
               {{- include "charts-common-deployment.selectorLabels" $ | nindent 14 }}
+          {{- end }}
+        {{- end }}
       {{- end }}

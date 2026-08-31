@@ -10,7 +10,7 @@ tests:
           path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels["app.kubernetes.io/name"]
           value: RELEASE-NAME
 
-  - it: BUG (B4) - with two constraints, only the LAST one gets a labelSelector; the first is a no-op (matches nothing)
+  - it: FIXED (B4) - with two constraints, BOTH get a labelSelector, not just the last one
     set:
       global.deployment.topologySpreadConstraints:
         - maxSkew: 1
@@ -20,11 +20,27 @@ tests:
           topologyKey: topology.kubernetes.io/zone
           whenUnsatisfiable: ScheduleAnyway
     asserts:
-      - notExists:
-          path: spec.template.spec.topologySpreadConstraints[0].labelSelector
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME
       - equal:
           path: spec.template.spec.topologySpreadConstraints[1].labelSelector.matchLabels["app.kubernetes.io/name"]
           value: RELEASE-NAME
+
+  - it: FIXED (B4) - a user-supplied labelSelector is preserved verbatim, not overwritten with a duplicate key
+    set:
+      global.deployment.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              custom: "yes"
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            custom: "yes"
 
   - it: empty list omits the key entirely
     set:

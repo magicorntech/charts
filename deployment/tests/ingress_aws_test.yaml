@@ -3,12 +3,6 @@ templates:
   - charts/charts-common/templates/ingress-aws.yaml
 values:
   - ../../ci/scenarios/deployment/aws-full.yaml
-# NOT tested here: a liveness probe without httpGet (e.g. an exec probe).
-# ingress-aws.yaml unconditionally dereferences
-# .deployment.liveness.httpGet.path for the ALB healthcheck-path
-# annotation, so today that nil-pointers the whole render (bug B9). The
-# guard that lets this render safely lands in Phase 3 — this suite gets
-# that regression test added then.
 tests:
   - it: uses the hardcoded alb ingressClassName
     asserts:
@@ -55,6 +49,42 @@ tests:
       - equal:
           path: metadata.annotations["alb.ingress.kubernetes.io/wafv2-acl-arn"]
           value: "arn:aws:wafv2:eu-west-1:000000000000:regional/webacl/example/id"
+
+  # FIXED (B9) - a liveness probe without httpGet no longer nil-pointers
+  # the whole render. NOT testable here: helm-unittest's set:/values:
+  # both deep-merge into the suite's base fixture the same way Helm's own
+  # -f layering does, and there is no way to actually clear a nested key
+  # that a base fixture already set — explicitly nulling it
+  # (global.deployment.liveness.httpGet: null) doesn't delete just that
+  # key, it collapses the whole `liveness` value to nil one level up,
+  # which then breaks the *other* liveness-derived annotations this same
+  # suite already asserts on. Covered instead by ci/gate.sh's
+  # cmd_exec_probe_guard, which renders directly via `helm template`
+  # against a values file with no httpGet key from the start.
+
+  - it: NEW - ingress[].healthcheckPath overrides the liveness-derived path when set
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          healthcheckPath: /custom-health
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/healthcheck-path"]
+          value: /custom-health
 
   - it: backend uses the service.ports.one.outer port
     asserts:

@@ -63,7 +63,7 @@ tests:
           value: ["*"]
         template: charts/charts-common/templates/role.yaml
 
-  - it: BUG (B8) - empty rules renders a null rules key, not an empty list
+  - it: FIXED (B8) - empty rules renders a real empty list, not a null key
     set:
       global.security.serviceAccount.rules: []
     asserts:

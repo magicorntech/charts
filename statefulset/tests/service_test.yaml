@@ -24,6 +24,21 @@ tests:
       - notExists:
           path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
 
+  - it: FIXED (B2) - aws + LoadBalancer with empty annotations renders the 9 NLB keys and parses as valid YAML (used to crash on a bare {} spliced mid-map)
+    template: charts/charts-common/templates/service-aws.yaml
+    set:
+      global.service.type: LoadBalancer
+      global.service.annotations: {}
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: external
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-attributes"]
+          value: "load_balancing.cross_zone.enabled=false, deletion_protection.enabled=true"
+
   - it: aws + LoadBalancer with real annotations renders the 9 NLB keys plus the user's own
     set:
       global.service.type: LoadBalancer

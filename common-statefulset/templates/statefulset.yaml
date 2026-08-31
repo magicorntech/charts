@@ -36,7 +36,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "charts-statefulset.serviceAccountName" . }}
+      {{- with include "charts-statefulset.serviceAccountName" . }}
+      serviceAccountName: {{ . }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.global.security.podSecurityContext | nindent 8 }}
       {{- if or .Values.global.configMap.enabled (and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled) }}
@@ -44,10 +46,10 @@ spec:
         {{- if .Values.global.configMap.enabled }}
         - name: app-config
           configMap:
-            name: {{ .Values.global.configMap.name }}
+            name: {{ .Values.global.configMap.name | quote }}
             items:
-              - key: {{ .Values.global.configMap.fileName }}
-                path: {{ .Values.global.configMap.fileName }}
+              - key: {{ .Values.global.configMap.fileName | quote }}
+                path: {{ .Values.global.configMap.fileName | quote }}
             defaultMode: 420
         {{- end }}
         {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
@@ -63,7 +65,7 @@ spec:
       containers:
         - name: {{ include "charts-statefulset.name" . }}
           image: "{{ .Values.global.deployment.image.uri }}"
-          imagePullPolicy: {{ .Values.global.deployment.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.global.deployment.image.pullPolicy | quote }}
           {{- if .Values.global.deployment.image.command }}
           command: {{- toYaml .Values.global.deployment.image.command | nindent 12 }}
           {{- end }}
@@ -82,14 +84,14 @@ spec:
             # StatefulSet specific: volumeMounts for persistent storage
             # Each pod will get its own PVC based on volumeClaimTemplates
             - name: storage
-              mountPath: {{ .Values.global.pvc.mountPath }}
-              subPath: {{ .Values.global.pvc.subPath }}
+              mountPath: {{ .Values.global.pvc.mountPath | quote }}
+              subPath: {{ .Values.global.pvc.subPath | quote }}
               readOnly: false
             {{- if .Values.global.configMap.enabled }}
             - name: app-config
               readOnly: true
-              mountPath: {{ .Values.global.configMap.mountPath }}
-              subPath: {{ .Values.global.configMap.fileName }}
+              mountPath: {{ .Values.global.configMap.mountPath | quote }}
+              subPath: {{ .Values.global.configMap.fileName | quote }}
             {{- end }}
             {{- if and (eq .Values.global.destination "gcp") .Values.global.secrets.enabled }}
             {{- range .Values.global.secrets.data }}
@@ -138,10 +140,14 @@ spec:
       {{- end }}
       {{- with .Values.global.deployment.topologySpreadConstraints }}
       topologySpreadConstraints:
-        {{- toYaml . | nindent 8 }}
+        {{- range $c := . }}
+        - {{- toYaml $c | nindent 10 }}
+          {{- if not $c.labelSelector }}
           labelSelector:
             matchLabels:
               {{- include "charts-statefulset.selectorLabels" $ | nindent 14 }}
+          {{- end }}
+        {{- end }}
       {{- end }}
 
   # StatefulSet specific: volumeClaimTemplates for persistent storage
@@ -158,5 +164,5 @@ spec:
         requests:
           storage: {{ .Values.global.pvc.size }}
       {{- if .Values.global.pvc.storageClass }}
-      storageClassName: {{ .Values.global.pvc.storageClass }}
+      storageClassName: {{ .Values.global.pvc.storageClass | quote }}
       {{- end }}

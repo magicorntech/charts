@@ -13,6 +13,7 @@ spec:
     name: {{ include "charts-common.name" . }}
   minReplicas: {{ .Values.global.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.global.autoscaling.maxReplicas }}
+  {{- if or .Values.global.autoscaling.targetCPUUtilizationPercentage .Values.global.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.global.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
@@ -30,6 +31,7 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.global.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
+  {{- end }}
   {{- if .Values.global.autoscaling.behavior }}
   behavior:
     {{- toYaml .Values.global.autoscaling.behavior | nindent 4 }}

@@ -12,14 +12,14 @@ tests:
           path: metadata.name
           value: RELEASE-NAME-cron1
 
-  - it: BUG (B3) - a multi-element command list gets joined into a single string element, not toYaml'd like args is
+  - it: FIXED (B3) - a multi-element command list renders as a real N-element list, toYaml'd like args always was
     asserts:
       - lengthEqual:
           path: spec.jobTemplate.spec.template.spec.containers[0].command
-          count: 1
+          count: 3
       - equal:
-          path: spec.jobTemplate.spec.template.spec.containers[0].command[0]
-          value: "/usr/local/bin/php artisan schedule:run"
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/usr/local/bin/php", "artisan", "schedule:run"]
       - lengthEqual:
           path: spec.jobTemplate.spec.template.spec.containers[0].args
           count: 1
@@ -27,11 +27,11 @@ tests:
           path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
           value: --no-interaction
 
-  - it: BUG (B6) - serviceAccountName renders empty (not omitted) when the ServiceAccount is disabled
+  - it: FIXED (B6) - serviceAccountName key is omitted entirely (not rendered empty) when the ServiceAccount is disabled
     set:
       global.security.serviceAccount.enabled: false
     asserts:
-      - isNullOrEmpty:
+      - notExists:
           path: spec.jobTemplate.spec.template.spec.serviceAccountName
 
   - it: serviceAccountName is set when the ServiceAccount is enabled

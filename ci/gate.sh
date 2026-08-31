@@ -154,6 +154,21 @@ cmd_destination_guard() {
   rm -f /tmp/destination-guard.err
 }
 
+cmd_exec_probe_guard() {
+  echo "== exec-probe-guard =="
+  # Regression check for bug B9. Not expressible as a helm-unittest case:
+  # both its set: and values: deep-merge into the suite's base fixture
+  # the same way Helm's own -f layering does, and there is no way to
+  # truly clear a nested key (like liveness.httpGet) that an earlier
+  # layer already populated without collapsing the parent map to nil.
+  # Uses a dedicated fixture with no httpGet key from the start instead.
+  local out
+  out="$(helm template ci-exec-probe deployment -f ci/scenarios/deployment/exec-probe.yaml -s charts/charts-common/templates/ingress-aws.yaml)" \
+    || { echo "FAIL: exec-probe liveness nil-pointered the ingress-aws.yaml render (regression of B9)"; exit 1; }
+  echo "$out" | grep -q 'alb.ingress.kubernetes.io/healthcheck-path: *$' \
+    || { echo "FAIL: expected an empty healthcheck-path annotation for a non-httpGet probe"; echo "$out"; exit 1; }
+}
+
 cmd_package_check() {
   echo "== package-check =="
   local pkgs=("$@")
@@ -215,6 +230,7 @@ cmd_all() {
   cmd_kubeconform
   cmd_notes
   cmd_destination_guard
+  cmd_exec_probe_guard
   cmd_package_check
 }
 
@@ -226,6 +242,7 @@ case "${1:-}" in
   kubeconform)    cmd_kubeconform ;;
   notes)          cmd_notes ;;
   destination-guard) cmd_destination_guard ;;
+  exec-probe-guard)  cmd_exec_probe_guard ;;
   package-check)  shift; cmd_package_check "$@" ;;
   all)            cmd_all ;;
   *)
