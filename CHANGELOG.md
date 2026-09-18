@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.1.0]
+
+### Added
+
+- **`global.posthooks`** — post-install/post-upgrade hook Jobs, the
+  counterpart to `global.prehooks`. Unlike `prehooks` (a fixed
+  `dbMigrations`/`otherPrehooks` pair), this is a list — same shape as
+  `global.cronjobs` — since there's no single canonical "the one
+  post-deploy job" (smoke test, cache warmup, Slack notify, ...). Each
+  entry supports `name`, `enabled`, `command`, `args`, an optional
+  `weight` (string, default `"0"`, for ordering multiple posthooks
+  relative to each other), an optional per-entry `resources` (falls back
+  to `global.deployment.resources`), and an optional `backoffLimit`.
+  Additive-only: `global.posthooks` defaults to `[]`, so an existing
+  values file's render is byte-for-byte unchanged. See the README's
+  "Post-deployment hooks" section for the important `--wait`/`--atomic`
+  caveat — Helm does not wait for the Deployment/StatefulSet to actually
+  be Ready before running a post-install/post-upgrade hook unless the
+  calling `helm upgrade`/`helm install` invocation itself passes that
+  flag.
+
 This is a single consolidated entry for the `2.0.0` release — everything
 accumulated in the `next` branch since `1.1.1`, released together rather
 than as a series of smaller version bumps (see the project plan this

@@ -105,6 +105,8 @@ global:
 
   cronjobs: []
 
+  posthooks: []
+
   security:
     serviceAccount:
       enabled: false

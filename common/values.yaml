@@ -145,6 +145,14 @@ global:
 
   cronjobs: []
 
+  # Post-install/post-upgrade hook Jobs. Unlike prehooks (a fixed
+  # dbMigrations/otherPrehooks pair), this is a list -- same shape as
+  # cronjobs -- since there's no single canonical "the one post-deploy
+  # job". Each entry: {name, enabled, command, args, weight (string,
+  # default "0"), resources (optional, falls back to
+  # deployment.resources), backoffLimit (optional)}.
+  posthooks: []
+
   security:
     serviceAccount:
       enabled: false

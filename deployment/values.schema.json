@@ -80,6 +80,22 @@
             }
           }
         },
+        "posthooks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "enabled"],
+            "properties": {
+              "name": { "type": "string" },
+              "enabled": { "type": "boolean" },
+              "command": { "type": "array", "items": { "type": "string" } },
+              "args": { "type": "array", "items": { "type": "string" } },
+              "weight": { "type": "string" },
+              "backoffLimit": { "type": "integer" },
+              "resources": { "type": "object" }
+            }
+          }
+        },
         "pvc": {
           "type": "object",
           "properties": {

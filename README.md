@@ -69,6 +69,7 @@ Both charts are organized into distinct configuration groups for simplicity and 
 | `scaling` | Horizontal Pod Autoscaler settings | Optional |
 | `configmap` | Configuration data management | Optional |
 | `prehooks` | Pre-deployment hooks and jobs | Optional |
+| `posthooks` | Post-deployment hooks and jobs (list — see note below) | Optional |
 | `cronjobs` | Scheduled job configurations | Optional |
 | `security` | Security policies and contexts | Optional |
 | `pvc` | Persistent Volume Claims | Optional (Deployment) / ✅ Required (StatefulSet) |
@@ -105,7 +106,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.0.0
+  --version 2.1.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -117,7 +118,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.0.0
+  --version 2.1.0
 ```
 
 ## Configuration
@@ -135,6 +136,7 @@ All charts use a consistent global values structure with the following key secti
 - `global.secrets`: Secret management (GCP Secret Manager integration)
 - `global.autoscaling`: Horizontal Pod Autoscaler configuration
 - `global.cronjobs`: Scheduled job configurations
+- `global.prehooks` / `global.posthooks`: pre/post-install,upgrade hook Jobs — see the dedicated section below for the `--wait` caveat on posthooks
 - `global.k8sSecrets`: Plain Kubernetes Secret env-var injection
 - `global.nameOverride` / `global.fullnameOverride`: override the computed object name (plain `.Release.Name` by default)
 
@@ -160,6 +162,37 @@ Charts use the following value resolution order:
 1. **Global values** (`global:` key) - shared across all charts
 2. **Chart-specific values** - override global values for specific charts
 3. **Command-line overrides** (`--set` flags) - highest priority
+
+### Post-deployment hooks (`global.posthooks`)
+
+A list of Jobs that run as `post-install,post-upgrade` Helm hooks — the
+counterpart to `global.prehooks`, for work that needs to happen *after*
+the release, e.g. a smoke test, cache warmup, or a Slack notification.
+Unlike `prehooks` (a fixed `dbMigrations`/`otherPrehooks` pair), this is a
+list, same shape as `global.cronjobs`, since there's no single canonical
+"the one post-deploy job":
+
+```yaml
+global:
+  posthooks:
+    - name: smoke-test
+      enabled: true
+      command: ["/usr/local/bin/curl"]
+      args: ["-f", "http://localhost:8080/healthz"]
+      weight: "10"        # optional, default "0" — lower runs first
+      backoffLimit: 2     # optional
+      resources: {}       # optional, falls back to global.deployment.resources
+```
+
+⚠️ **Helm does not wait for your Deployment/StatefulSet to be Ready before
+running a post-install/post-upgrade hook** — it runs as soon as the
+release's main resources are accepted by the API server, which can be
+*before* the new pods have finished rolling out. If a posthook needs to
+talk to the version it's deploying (a smoke test hitting the new pods, for
+example), the `helm upgrade`/`helm install` invocation itself must pass
+`--wait` (or `--atomic`, which implies it) — this chart has no way to
+enforce that from inside the template. Without `--wait`, treat a posthook
+as running against "the release was accepted", not "the release is live."
 
 ### Values Contract
 
