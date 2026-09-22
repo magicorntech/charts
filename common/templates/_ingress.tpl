@@ -112,11 +112,13 @@ ingress entry sets its own `servicePortName` — every entry has hardcoded
 {{- define "charts-common.ingress.rules" -}}
 {{- $root := .root -}}
 {{- range $ingress := list .ingress }}
-{{- range $ingress.hosts -}}
-- host: {{ .host | quote }}
+{{- range $hIdx, $host := $ingress.hosts }}
+{{- if $hIdx }}
+{{ end -}}
+- host: {{ $host.host | quote }}
   http:
     paths:
-      {{- range .paths }}
+      {{- range $host.paths }}
       - path: {{ .path | quote }}
         {{- if .pathType }}
         pathType: {{ .pathType | quote }}

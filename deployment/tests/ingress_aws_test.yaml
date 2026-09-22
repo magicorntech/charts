@@ -188,3 +188,46 @@ tests:
           value: RELEASE-NAME
       - notExists:
           path: spec.rules[0].http.paths[0].backend.serviceName
+
+  - it: REGRESSION - a single ingress[] entry with multiple hosts renders as multiple rules[] entries with valid, clean YAML
+    # A missing separator between host iterations in
+    # charts-common.ingress.rules (a stray trailing trim-dash on the
+    # hosts range tag) used to concatenate consecutive hosts with no
+    # newline (e.g. "number: 80- host: ..."), producing invalid YAML
+    # that failed to even parse. Multiple *paths* under one host was
+    # never affected (that range tag never had the trailing dash) —
+    # this is specifically about multiple *hosts* in one entry.
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: gameforge.example
+              paths:
+                - path: /
+                  pathType: Prefix
+            - host: www.gameforge.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[0].host
+          value: gameforge.example
+      - equal:
+          path: spec.rules[1].host
+          value: www.gameforge.example
+      - equal:
+          path: spec.rules[1].http.paths[0].backend.service.name
+          value: RELEASE-NAME

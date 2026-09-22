@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.1.1]
+
+### Fixed
+
+- **Multiple `hosts` in a single `global.ingress[]` entry produced
+  invalid YAML.** A stray trailing trim-dash on the hosts `range` tag in
+  `charts-common.ingress.rules` swallowed the newline between consecutive
+  host entries, concatenating them (e.g. `number: 80- host: ...`) into a
+  render that failed to even parse. This only affected multiple *hosts*
+  under one ingress entry — multiple *paths* under a single host was
+  never affected, and was always the supported way to give one ALB/
+  Ingress object several host+paths rules (each `global.ingress[]` entry
+  is one Ingress object; each entry's `hosts` list can carry any number
+  of `{host, paths}` pairs onto that same object, exactly like a native
+  Kubernetes Ingress's own `spec.rules`). Fixed to match the working
+  pattern `paths` already used, with an index-gated separator so the
+  first host in a list still renders without a spurious leading blank
+  line. See `ingress_aws_test.yaml`'s new regression test in both
+  charts for the exact repro.
+
 ## [2.1.0]
 
 ### Added
