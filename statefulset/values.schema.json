@@ -9,7 +9,7 @@
       "properties": {
         "destination": {
           "type": "string",
-          "enum": ["aws", "gcp", "hcp", "datacenter"],
+          "enum": ["aws", "gcp", "hcp", "datacenter", "azure"],
           "description": "Target platform. Selects the Service/Ingress flavour and the platform-specific objects (SecurityGroupPolicy on aws, SecretProviderClass on gcp)."
         },
         "deployment": {
@@ -61,7 +61,11 @@
               "sslRedirect": { "type": "boolean" },
               "healthcheckPath": { "type": "string" },
               "name": { "type": "string" },
-              "servicePortName": { "type": "string" }
+              "servicePortName": { "type": "string" },
+              "albId": { "type": ["string", "null"] },
+              "albName": { "type": ["string", "null"] },
+              "albNamespace": { "type": ["string", "null"] },
+              "albFrontend": { "type": ["string", "null"] }
             }
           }
         },

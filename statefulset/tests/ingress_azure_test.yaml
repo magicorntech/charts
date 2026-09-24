@@ -1,0 +1,338 @@
+suite: ingress azure (Application Gateway for Containers, Ingress API)
+templates:
+  - templates/ingress.yaml
+values:
+  - ../../ci/scenarios/statefulset/azure-full.yaml
+tests:
+  - it: uses the hardcoded azure-alb-external ingressClassName
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: azure-alb-external
+        documentIndex: 0
+
+  - it: managed deployment (albName+albNamespace) renders alb-name/alb-namespace, not alb-id, plus a default alb-frontend
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-name"]
+          value: alb-test
+        documentIndex: 0
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-namespace"]
+          value: alb-test-infra
+        documentIndex: 0
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-frontend"]
+          value: RELEASE-NAME-1
+        documentIndex: 0
+      - notExists:
+          path: metadata.annotations["alb.networking.azure.io/alb-id"]
+        documentIndex: 0
+
+  - it: bring-your-own deployment (albId+albFrontend) renders alb-id, not alb-name/alb-namespace
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albId: /subscriptions/xxx/resourceGroups/yyy/providers/Microsoft.ServiceNetworking/trafficControllers/zzz
+          albFrontend: my-frontend
+          sslRedirect: false
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-id"]
+          value: /subscriptions/xxx/resourceGroups/yyy/providers/Microsoft.ServiceNetworking/trafficControllers/zzz
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-frontend"]
+          value: my-frontend
+      - notExists:
+          path: metadata.annotations["alb.networking.azure.io/alb-name"]
+      - notExists:
+          path: metadata.annotations["alb.networking.azure.io/alb-namespace"]
+
+  - it: an explicit albFrontend overrides the name-derived default
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albName: alb-test
+          albNamespace: alb-test-infra
+          albFrontend: custom-frontend
+          sslRedirect: false
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-frontend"]
+          value: custom-frontend
+
+  - it: platform wins on a colliding user annotation (same asymmetry as aws/hcp, opposite of Service)
+    set:
+      global.ingress:
+        - enabled: true
+          annotations:
+            alb.networking.azure.io/alb-name: user-supplied
+          className: null
+          albName: alb-test
+          albNamespace: alb-test-infra
+          sslRedirect: false
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-name"]
+          value: alb-test
+
+  - it: renders tls from the shared gcp/datacenter/azure tls block
+    asserts:
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: hostname.example
+        documentIndex: 0
+      - equal:
+          path: spec.tls[0].secretName
+          value: hostname-tls
+        documentIndex: 0
+
+  - it: FIXED (multi-host, 2.1.1) - a single entry with multiple hosts renders multiple rules entries
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albName: alb-test
+          albNamespace: alb-test-infra
+          sslRedirect: false
+          hosts:
+            - host: a.example
+              paths:
+                - path: /
+                  pathType: Prefix
+            - host: b.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[0].host
+          value: a.example
+      - equal:
+          path: spec.rules[1].host
+          value: b.example
+
+  # --- HTTP -> HTTPS redirect (Application Gateway for Containers has no
+  # single-annotation redirect the way aws does -- this chart generates an
+  # IngressExtension + a second port-80 Ingress. See README's "Post-
+  # deployment hooks"-adjacent "Azure (AKS)" section for the caveat that
+  # this can't be proven end-to-end by a template-only test suite. ---
+
+  - it: tls set + sslRedirect unset (default true) renders the main Ingress, the redirect IngressExtension, and the port-80 Ingress
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: the redirect IngressExtension carries one requestRedirect rule per host, at the right kind/apiVersion
+    # Document order matches the raw, unsorted template source
+    # (IngressExtension is emitted before the http Ingress inside
+    # charts-common.ingress.redirectAzure) — different from `helm
+    # template`'s own CLI output, which re-sorts objects by kind before
+    # printing (Ingress before an unrecognized CRD kind).
+    asserts:
+      - equal:
+          path: apiVersion
+          value: alb.networking.azure.io/v1
+        documentIndex: 1
+      - equal:
+          path: kind
+          value: IngressExtension
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-1-https-redirect
+        documentIndex: 1
+      - equal:
+          path: spec.rules[0].host
+          value: hostname.example
+        documentIndex: 1
+      - equal:
+          path: spec.rules[0].requestRedirect.scheme
+          value: https
+        documentIndex: 1
+      - equal:
+          path: spec.rules[0].requestRedirect.statusCode
+          value: 301
+        documentIndex: 1
+
+  - it: the redirect's port-80 Ingress shares the main Ingress's name/frontend, references the extension, carries the same rules, and has no tls
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-1-http
+        documentIndex: 2
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-frontend"]
+          value: RELEASE-NAME-1
+        documentIndex: 2
+      - equal:
+          path: metadata.annotations["alb.networking.azure.io/alb-ingress-extension"]
+          value: RELEASE-NAME-1-https-redirect
+        documentIndex: 2
+      - equal:
+          path: spec.ingressClassName
+          value: azure-alb-external
+        documentIndex: 2
+      - equal:
+          path: spec.rules[0].host
+          value: hostname.example
+        documentIndex: 2
+      - notExists:
+          path: spec.tls
+        documentIndex: 2
+
+  - it: sslRedirect false suppresses the redirect pair even with tls set
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albName: alb-test
+          albNamespace: alb-test-infra
+          sslRedirect: false
+          tls:
+            - hosts:
+                - hostname.example
+              secretName: hostname-tls
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: no tls set suppresses the redirect pair even though sslRedirect defaults to true
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albName: alb-test
+          albNamespace: alb-test-infra
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # --- Validation guards (charts-common.ingress.validateAzure) ---
+
+  - it: neither albId nor albName set fails with a clear error
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.ingress[0] (RELEASE-NAME): azure requires either albId (bring-your-own) or albName (+ albNamespace, managed deployment)'
+
+  - it: albName without albNamespace fails with a clear error
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albName: alb-test
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.ingress[0] (RELEASE-NAME): albName requires albNamespace'
+
+  - it: albId without albFrontend fails with a clear error
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albId: /subscriptions/xxx
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.ingress[0] (RELEASE-NAME): albId (bring-your-own) requires albFrontend — the pre-existing Application Gateway for Containers frontend name in Azure'
+
+  - it: scheme internal fails loudly instead of silently exposing a public frontend
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albName: alb-test
+          albNamespace: alb-test-infra
+          scheme: internal
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.ingress[0] (RELEASE-NAME): Application Gateway for Containers has no private/internal frontend — expose this privately via an internal Azure Load Balancer Service instead (global.service.type: LoadBalancer + the service.beta.kubernetes.io/azure-load-balancer-internal: "true" annotation)'
+
+  - it: wafId set fails loudly instead of silently deploying without WAF protection
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          albName: alb-test
+          albNamespace: alb-test-infra
+          wafId: some-policy-id
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.ingress[0] (RELEASE-NAME): wafId has no effect on azure — WAF on Application Gateway for Containers is only exposed via the Gateway API, not the Ingress API this chart uses'
+
+  - it: a disabled entry is never validated (no fail even with nothing set)
+    set:
+      global.ingress:
+        - enabled: false
+          annotations: {}
+    asserts:
+      - hasDocuments:
+          count: 0

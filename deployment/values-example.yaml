@@ -3,10 +3,10 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v2.1.1
+# v2.2.0
 
 global:
-  # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp and datacenter. (for now) 
+  # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp, datacenter and azure.
   destination: aws
 
   # Anything related to deployment object itself. Must. Fill. This!
@@ -106,15 +106,17 @@ global:
   ingress:
   - enabled: true
     annotations: {} # You can add additional annotations if you'd like.
-    className: null # Ignored if "destination == aws || destination == hcp".
+    className: null # Ignored if "destination == aws || destination == hcp || destination == azure".
+    # --- AWS only, ignored on every other destination ---
     idleTimeout: 60
-    scheme: internet-facing # or "internal".
+    scheme: internet-facing # or "internal". Azure: "internal" is rejected — AGC has no private frontend, use an internal Azure Load Balancer Service instead.
     certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
-    wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
+    wafId: null # You can either paste v2 Web ACL ARN or skip by "null". Azure: must stay null — WAF on AGC's Ingress API isn't supported, only Gateway API.
     sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
     # AWS only. "http", "https", or "both" (default when unset).
     listenPorts: both
-    # AWS only. Set to false to disable the automatic HTTP -> HTTPS redirect.
+    # AWS/Azure. Set to false to disable the automatic HTTP -> HTTPS redirect
+    # (on Azure, only takes effect when tls is also set below).
     sslRedirect: true
     # AWS only. Overrides the ALB healthcheck path; defaults to
     # deployment.liveness.httpGet.path when unset.
@@ -122,7 +124,14 @@ global:
     lbId: externalloadBalancerNameHere
     # It's really important for you to manage lbOrders manually, it affects the LCU cost and precedence.
     lbOrder: 100
-    # TLS configuration for datacenter deployments (ignored for AWS/HCP)
+    # --- Azure only (Application Gateway for Containers, Ingress API) ---
+    # Bind to an ALB Controller-managed frontend (needs albName + albNamespace):
+    # albName: alb-test
+    # albNamespace: alb-test-infra
+    # ...or a bring-your-own, already-provisioned frontend (needs albFrontend too):
+    # albId: /subscriptions/xxx/resourceGroups/yyy/providers/Microsoft.ServiceNetworking/trafficControllers/zzz
+    # albFrontend: frontend
+    # TLS configuration for datacenter/gcp/azure deployments (ignored for AWS/HCP)
     # tls:
     # - hosts:
     #   - hostname.example
@@ -134,15 +143,17 @@ global:
         pathType: Prefix
   - enabled: false
     annotations: {} # You can add additional annotations if you'd like.
-    className: null # Ignored if "destination == aws || destination == hcp".
+    className: null # Ignored if "destination == aws || destination == hcp || destination == azure".
+    # --- AWS only, ignored on every other destination ---
     idleTimeout: 60
-    scheme: internal # or "internal".
+    scheme: internal # or "internal". Azure: "internal" is rejected — AGC has no private frontend, use an internal Azure Load Balancer Service instead.
     certificateId: arn:aws:acm:eu-west-1:000000000000:certificate/d0cb0db0-0000-0000-0000-0dc0000e0e00
-    wafId: null # You can either paste v2 Web ACL ARN or skip by "null".
+    wafId: null # You can either paste v2 Web ACL ARN or skip by "null". Azure: must stay null — WAF on AGC's Ingress API isn't supported, only Gateway API.
     sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
     # AWS only. "http", "https", or "both" (default when unset).
     listenPorts: both
-    # AWS only. Set to false to disable the automatic HTTP -> HTTPS redirect.
+    # AWS/Azure. Set to false to disable the automatic HTTP -> HTTPS redirect
+    # (on Azure, only takes effect when tls is also set below).
     sslRedirect: true
     # AWS only. Overrides the ALB healthcheck path; defaults to
     # deployment.liveness.httpGet.path when unset.
@@ -150,7 +161,10 @@ global:
     lbId: internalloadBalancerNameHere
     # It's really important for you to manage lbOrder manually, it affects the LCU cost and precedence.
     lbOrder: 200
-    # TLS configuration for datacenter deployments (ignored for AWS/HCP)
+    # --- Azure only (Application Gateway for Containers, Ingress API) ---
+    # albName: alb-test
+    # albNamespace: alb-test-infra
+    # TLS configuration for datacenter/gcp/azure deployments (ignored for AWS/HCP)
     # tls:
     # - hosts:
     #   - hostname.int.example

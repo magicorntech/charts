@@ -19,6 +19,25 @@ service.beta.kubernetes.io/aws-load-balancer-attributes: load_balancing.cross_zo
 {{- end -}}
 
 {{/*
+The Azure Load Balancer (AKS) health-probe annotations, aws-NLB-block's
+azure counterpart. Only interval/threshold are set -- Azure LB probes stay
+plain TCP (no protocol/path annotation), same reasoning the AWS NLB block
+already follows: this chart's Service always carries more than one port
+(see global.service.ports), and an HTTP-path probe would be evaluated
+against every one of them, breaking a non-HTTP port. `internet-facing` is
+the default scheme, matching AWS's own hardcoded default -- an internal LB
+is opted into via the user's own `azure-load-balancer-internal: "true"`
+annotation, which wins over this block (see charts-common.service below).
+Azure Load Balancer enforces hard minimums (interval >= 5s, probe count >=
+2) that AWS's NLB does not -- clamped with `max` so a liveness probe tuned
+for AWS/HTTP semantics can't silently produce a rejected-by-Azure manifest.
+*/}}
+{{- define "charts-common.service.azureLbAnnotations" -}}
+service.beta.kubernetes.io/azure-load-balancer-health-probe-interval: {{ max .Values.global.deployment.liveness.periodSeconds 5 | quote }}
+service.beta.kubernetes.io/azure-load-balancer-health-probe-num-of-probe: {{ max .Values.global.deployment.liveness.failureThreshold 2 | quote }}
+{{- end -}}
+
+{{/*
 Collapses service-{aws,gcp,hcp,datacenter}.yaml, which differed only in
 the destination guard and (aws only) the NLB annotation block — 84 of 112
 lines were pure copy-paste. Takes the plain root context.
@@ -50,6 +69,8 @@ metadata:
     {{- $plat := dict }}
     {{- if and (eq $dest "aws") (eq (default "ClusterIP" $root.Values.global.service.type) "LoadBalancer") }}
     {{- $plat = include "charts-common.service.nlbAnnotations" $root | fromYaml }}
+    {{- else if and (eq $dest "azure") (eq (default "ClusterIP" $root.Values.global.service.type) "LoadBalancer") }}
+    {{- $plat = include "charts-common.service.azureLbAnnotations" $root | fromYaml }}
     {{- end }}
     {{- toYaml (merge (dict) $user $plat) | nindent 4 }}
   labels:

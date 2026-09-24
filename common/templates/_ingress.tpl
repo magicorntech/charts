@@ -64,6 +64,115 @@ kubernetes.io/elb.client_timeout: {{ $ingress.idleTimeout | quote }}
 {{- end -}}
 
 {{/*
+The Application Gateway for Containers (AGC) alb.networking.azure.io
+annotations. Dict: {root, ingress, name}. Two ways to bind an Ingress to
+an AGC frontend, mutually exclusive (validated in
+charts-common.ingress.validateAzure below): `albId` (bring-your-own — an
+already-provisioned Application Gateway for Containers resource ID), or
+`albName`+`albNamespace` (managed — the ALB Controller provisions the
+Azure resources itself, matching the AWS/aws-load-balancer-controller
+model this chart otherwise follows). `albFrontend` defaults to this
+Ingress object's own name — deterministic, so the port-80 redirect
+Ingress (see charts-common.ingress.redirectAzure below) can share the
+exact same frontend without a second value to keep in sync, and so the
+existing position-based Ingress naming invariant (never rename on
+`enabled` toggle) extends to the frontend name too.
+*/}}
+{{- define "charts-common.ingress.annotations.azure" -}}
+{{- $ingress := .ingress -}}
+{{- if $ingress.albId }}
+alb.networking.azure.io/alb-id: {{ $ingress.albId | quote }}
+{{- else }}
+alb.networking.azure.io/alb-name: {{ $ingress.albName | quote }}
+alb.networking.azure.io/alb-namespace: {{ $ingress.albNamespace | quote }}
+{{- end }}
+alb.networking.azure.io/alb-frontend: {{ $ingress.albFrontend | default .name | quote }}
+{{- end -}}
+
+{{/*
+Fails loudly on an azure ingress[] entry that's missing what AGC actually
+needs, or that silently asks for something AGC's Ingress API cannot do.
+Dict: {ingress, index, name}.
+
+scheme "internal" and wafId are hard failures, not silently-ignored
+no-ops, on purpose — unlike the other AWS-only keys (sslPolicy,
+listenPorts, idleTimeout, lbId, lbOrder, certificateId, healthcheckPath),
+which just don't apply here and are documented as such, these two are
+security-relevant: silently exposing a WAF-less public ingress where the
+author asked for internal-only or WAF-protected would be a real, invisible
+regression, not a cosmetic no-op.
+*/}}
+{{- define "charts-common.ingress.validateAzure" -}}
+{{- $ingress := .ingress -}}
+{{- $name := .name -}}
+{{- if not (or $ingress.albId $ingress.albName) -}}
+{{- fail (printf "global.ingress[%d] (%s): azure requires either albId (bring-your-own) or albName (+ albNamespace, managed deployment)" .index $name) -}}
+{{- end -}}
+{{- if and $ingress.albName (not $ingress.albNamespace) -}}
+{{- fail (printf "global.ingress[%d] (%s): albName requires albNamespace" .index $name) -}}
+{{- end -}}
+{{- if and $ingress.albId (not $ingress.albFrontend) -}}
+{{- fail (printf "global.ingress[%d] (%s): albId (bring-your-own) requires albFrontend — the pre-existing Application Gateway for Containers frontend name in Azure" .index $name) -}}
+{{- end -}}
+{{- if eq $ingress.scheme "internal" -}}
+{{- fail (printf "global.ingress[%d] (%s): Application Gateway for Containers has no private/internal frontend — expose this privately via an internal Azure Load Balancer Service instead (global.service.type: LoadBalancer + the service.beta.kubernetes.io/azure-load-balancer-internal: \"true\" annotation)" .index $name) -}}
+{{- end -}}
+{{- if $ingress.wafId -}}
+{{- fail (printf "global.ingress[%d] (%s): wafId has no effect on azure — WAF on Application Gateway for Containers is only exposed via the Gateway API, not the Ingress API this chart uses" .index $name) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The HTTP->HTTPS redirect pair for an azure ingress[] entry: an
+IngressExtension (AGC's own CRD for anything the plain Ingress API can't
+express) carrying one requestRedirect rule per host, plus a second,
+port-80 Ingress that references it via the alb-ingress-extension
+annotation — AGC's Ingress API has no single-annotation redirect the way
+aws-load-balancer-controller's ssl-redirect does, this is the two-object
+shape its own docs require. Shares $name's exact annotations (so it binds
+to the identical alb-frontend — see charts-common.ingress.annotations.azure
+above) and the identical `rules:` block as the main Ingress, just with no
+`tls:` — same "AGC still expects the backend routing declared" shape its
+own example carries. Dict: {root, ingress, dest, name, annotations}.
+*/}}
+{{- define "charts-common.ingress.redirectAzure" -}}
+{{- $root := .root -}}
+{{- $ingress := .ingress -}}
+{{- $name := .name -}}
+apiVersion: alb.networking.azure.io/v1
+kind: IngressExtension
+metadata:
+  name: {{ $name }}-https-redirect
+  namespace: "{{ $root.Release.Namespace }}"
+  labels:
+    {{- include "charts-common.labels" $root | nindent 4 }}
+spec:
+  rules:
+    {{- range $ingress.hosts }}
+    - host: {{ .host | quote }}
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+    {{- end }}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}-http
+  namespace: "{{ $root.Release.Namespace }}"
+  labels:
+    {{- include "charts-common.labels" $root | nindent 4 }}
+  annotations:
+    {{- .annotations | nindent 4 }}
+    alb.networking.azure.io/alb-ingress-extension: {{ $name }}-https-redirect
+spec:
+  ingressClassName: azure-alb-external
+  rules:
+    {{- include "charts-common.ingress.rules" (dict "root" $root "ingress" $ingress "dest" .dest) | nindent 4 }}
+{{- end -}}
+
+{{/*
 Resolves an Ingress rule's backend service name — the plain release name,
 unless P7's Argo Rollouts is active AND this specific
 global.ingress[] entry opted in via `rolloutService` (empty by default —
@@ -166,17 +275,21 @@ metadata:
     {{- $plat = include "charts-common.ingress.annotations.aws" (dict "root" $root "ingress" $ingress) | fromYaml }}
     {{- else if eq $dest "hcp" }}
     {{- $plat = include "charts-common.ingress.annotations.hcp" (dict "root" $root "ingress" $ingress "name" $name) | fromYaml }}
+    {{- else if eq $dest "azure" }}
+    {{- include "charts-common.ingress.validateAzure" (dict "ingress" $ingress "index" $index "name" $name) }}
+    {{- $plat = include "charts-common.ingress.annotations.azure" (dict "ingress" $ingress "name" $name) | fromYaml }}
     {{- end }}
-    {{- toYaml (merge (dict) $plat $user) | nindent 4 }}
+    {{- $mergedAnnotations := merge (dict) $plat $user }}
+    {{- toYaml $mergedAnnotations | nindent 4 }}
 spec:
-  {{- if or (eq $dest "aws") (eq $dest "hcp") }}
-  ingressClassName: {{ if eq $dest "aws" }}alb{{ else }}cce{{ end }}
+  {{- if or (eq $dest "aws") (eq $dest "hcp") (eq $dest "azure") }}
+  ingressClassName: {{ if eq $dest "aws" }}alb{{ else if eq $dest "hcp" }}cce{{ else }}azure-alb-external{{ end }}
   {{- else }}
   {{- with $ingress.className }}
   ingressClassName: {{ . | quote }}
   {{- end }}
   {{- end }}
-  {{- if and (or (eq $dest "gcp") (eq $dest "datacenter")) $ingress.tls }}
+  {{- if and (or (eq $dest "gcp") (eq $dest "datacenter") (eq $dest "azure")) $ingress.tls }}
   tls:
     {{- range $ingress.tls }}
     - hosts:
@@ -189,6 +302,10 @@ spec:
   rules:
     {{- include "charts-common.ingress.rules" (dict "root" $root "ingress" $ingress "dest" $dest) | nindent 4 }}
 ---
+{{ if and (eq $dest "azure") $ingress.tls (ne (toString $ingress.sslRedirect) "false") -}}
+{{- include "charts-common.ingress.redirectAzure" (dict "root" $root "ingress" $ingress "dest" $dest "name" $name "annotations" (toYaml $mergedAnnotations)) }}
+---
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end -}}

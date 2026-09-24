@@ -62,8 +62,8 @@ would otherwise let an invalid destination render nothing, silently).
 */}}
 {{- define "charts-common.destination" -}}
 {{- $d := default "" .Values.global.destination -}}
-{{- if not (has $d (list "aws" "gcp" "hcp" "datacenter")) -}}
-{{- fail (printf "global.destination must be one of: aws, gcp, hcp, datacenter (got %q)" $d) -}}
+{{- if not (has $d (list "aws" "gcp" "hcp" "datacenter" "azure")) -}}
+{{- fail (printf "global.destination must be one of: aws, gcp, hcp, datacenter, azure (got %q)" $d) -}}
 {{- end -}}
 {{- $d -}}
 {{- end -}}

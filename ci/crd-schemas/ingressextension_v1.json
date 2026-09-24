@@ -1,0 +1,45 @@
+{
+  "description": "Minimal, hand-derived schema for alb.networking.azure.io/v1 IngressExtension (Application Gateway for Containers). No official OpenAPI schema is published anywhere kubeconform can fetch (datreeio/CRDs-catalog has no alb.networking.azure.io entries as of this writing, and the ALB Controller's own Helm chart ships no CRD manifests — Azure/Application-Gateway-for-Containers-Migration-Utility only carries Go struct definitions, not a schema). Covers exactly the shape this chart's own charts-common.ingress.redirectAzure define emits (spec.rules[].host + requestRedirect.scheme/statusCode) -- deliberately not the full upstream spec (rewrites, backendSettings, sessionAffinity, path-based redirects), which this chart doesn't generate. Widen this file if a future feature starts emitting more of the real spec.",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "spec": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host"],
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "requestRedirect": {
+                "type": "object",
+                "properties": {
+                  "scheme": {
+                    "type": "string",
+                    "enum": ["http", "https"]
+                  },
+                  "statusCode": {
+                    "type": "integer",
+                    "enum": [301, 302]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}

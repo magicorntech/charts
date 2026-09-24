@@ -47,3 +47,11 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  - it: NEGATIVE - azure + enabled renders nothing, sgPolicy is aws-only
+    set:
+      global.destination: azure
+      global.security.sgPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0

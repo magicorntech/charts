@@ -202,25 +202,26 @@ cmd_destination_guard() {
   #
   # The exact error WORDING is Helm-version-dependent (confirmed for
   # real): 3.21.4 and 4.2.4 both say `value must be one of 'aws', 'gcp',
-  # 'hcp', 'datacenter'`, but 3.10.3 -- a different underlying
+  # 'hcp', 'datacenter', 'azure'`, but 3.10.3 -- a different underlying
   # gojsonschema version -- says `must be one of the following: "aws",
-  # "gcp", "hcp", "datacenter"` instead (different quote style, different
-  # phrasing). Both are the SAME real rejection, just formatted
+  # "gcp", "hcp", "datacenter", "azure"` instead (different quote style,
+  # different phrasing). Both are the SAME real rejection, just formatted
   # differently, so the check matches on substance (every valid
   # destination name actually present) rather than one exact phrasing —
   # a looser match, on purpose, not a weaker one: it still fails if the
   # rejection came from anywhere else (a missing name means the error is
   # about something other than this schema rule).
   for chart in deployment statefulset; do
-    if helm template "ci-$chart" "$chart" --set global.destination=azure > /dev/null 2>/tmp/destination-guard.err; then
-      echo "FAIL: $chart accepted global.destination=azure — the schema should have rejected it"
+    if helm template "ci-$chart" "$chart" --set global.destination=digitalocean > /dev/null 2>/tmp/destination-guard.err; then
+      echo "FAIL: $chart accepted global.destination=digitalocean — the schema should have rejected it"
       exit 1
     fi
     if ! grep -q "destination" /tmp/destination-guard.err \
       || ! grep -q "aws" /tmp/destination-guard.err \
       || ! grep -q "gcp" /tmp/destination-guard.err \
       || ! grep -q "hcp" /tmp/destination-guard.err \
-      || ! grep -q "datacenter" /tmp/destination-guard.err; then
+      || ! grep -q "datacenter" /tmp/destination-guard.err \
+      || ! grep -q "azure" /tmp/destination-guard.err; then
       echo "FAIL: $chart rejected the bad destination for the wrong reason:"
       cat /tmp/destination-guard.err
       exit 1

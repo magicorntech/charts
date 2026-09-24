@@ -13,6 +13,7 @@ A comprehensive collection of Helm charts for deploying generic service applicat
 This repository contains versatile Helm charts designed to package generic service applications for private Kubernetes platforms. The charts have been thoroughly tested and optimized for:
 
 - **AWS Elastic Kubernetes Service (EKS)** with AWS Application Load Balancer Ingress Controller
+- **Azure Kubernetes Service (AKS)** with Application Gateway for Containers (see the dedicated section below)
 - **Huawei Cloud Platform** with CCE Turbo Cluster networking
 - **Google Cloud Platform (GCP)** with Google Kubernetes Engine (GKE) and Secret Manager integration
 - **On-premise/datacenter** deployments with TLS support
@@ -106,7 +107,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.1.1
+  --version 2.2.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -118,7 +119,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.1.1
+  --version 2.2.0
 ```
 
 ## Configuration
@@ -126,7 +127,7 @@ helm upgrade --install --create-namespace \
 ### Global Values Structure
 
 All charts use a consistent global values structure with the following key sections:
-- `global.destination`: Target platform (aws, gcp, hcp, datacenter) — schema-validated, see Values Contract below
+- `global.destination`: Target platform (aws, gcp, hcp, datacenter, azure) — schema-validated, see Values Contract below
 - `global.deployment`: Application configuration (image, resources, health checks, `enabled` toggle, DNS/scheduling overrides)
 - `global.rollout`: Argo Rollouts canary/blueGreen — **`deployment` chart only**, off by default, mutually exclusive with `global.deployment.enabled`
 - `global.service`: Service configuration (ports, type, annotations)
@@ -193,6 +194,77 @@ example), the `helm upgrade`/`helm install` invocation itself must pass
 `--wait` (or `--atomic`, which implies it) — this chart has no way to
 enforce that from inside the template. Without `--wait`, treat a posthook
 as running against "the release was accepted", not "the release is live."
+
+### Azure (AKS)
+
+`destination: azure` targets **Application Gateway for Containers (AGC)**
+via the Kubernetes **Ingress API** for L7 (`global.ingress`), and the
+plain **Azure Load Balancer** (AKS's own cloud-provider integration) for
+L4 (`global.service`, `type: LoadBalancer`). AGC is Microsoft's current
+recommendation, the successor to the older Application Gateway Ingress
+Controller (AGIC) — this chart does not support AGIC.
+
+**A plain, freshly-created AKS cluster cannot use `destination: azure`
+out of the box** — same as EKS needing `aws-load-balancer-controller`
+installed separately, AKS needs its own prerequisites in place first:
+
+1. The **ALB Controller** installed on the cluster (AKS add-on, or Helm —
+   see [Microsoft's quickstart](https://learn.microsoft.com/en-us/azure/application-gateway/for-containers/quickstart-deploy-application-gateway-for-containers-alb-controller-helm)).
+2. The Application Gateway for Containers Azure resource itself —
+   either **managed** (the ALB Controller provisions it for you from an
+   `ApplicationLoadBalancer` custom resource — use `global.ingress[].albName`
+   + `albNamespace`) or **bring-your-own** (you provision it yourself in
+   Azure — use `albId` + `albFrontend`).
+3. A TLS certificate as a plain **Kubernetes Secret** in-cluster
+   (`global.ingress[].tls`) — AGC cannot mount a certificate from Azure
+   Key Vault directly (the Secrets Store CSI driver isn't supported for
+   AGC's own certificates); use [cert-manager](https://cert-manager.io/)
+   with Let's Encrypt, or sync from Key Vault into a Secret yourself.
+
+**What's deliberately not supported, and why the chart fails loudly
+instead of silently ignoring it:**
+
+| `global.ingress[]` key | On azure |
+|---|---|
+| `scheme: internal` | **Rejected at render time.** AGC's Ingress API has no private/internal frontend. Expose privately instead via `global.service.type: LoadBalancer` + the `service.beta.kubernetes.io/azure-load-balancer-internal: "true"` annotation (a real internal Azure Load Balancer). |
+| `wafId` | **Rejected at render time.** WAF on AGC is only exposed via the Gateway API, not the Ingress API this chart uses. |
+| `sslPolicy`, `idleTimeout`, `lbId`, `lbOrder`, `certificateId`, `listenPorts`, `healthcheckPath` | Silently ignored (AWS-only) — AGC's Ingress API has no equivalent knob for any of these (health probes fall back to the pod's own readiness probe; ports are fixed at 80/443). |
+
+**HTTP → HTTPS redirect** (`sslRedirect`, default `true`, same key as
+AWS): AGC has no single-annotation redirect — when `tls` is set and
+`sslRedirect` isn't `false`, this chart generates two extra objects per
+ingress entry: an `IngressExtension` (AGC's own CRD) carrying the redirect
+rule, and a second, port-80-only `Ingress` referencing it. Both share the
+main Ingress's `alb-frontend`, so they route through the same AGC
+frontend/FQDN.
+
+**Binding fields** (`global.ingress[]`):
+
+```yaml
+global:
+  ingress:
+    - enabled: true
+      # Managed: the ALB Controller provisions the Azure resources for you.
+      albName: alb-test
+      albNamespace: alb-test-infra
+      # ...or bring-your-own: reference an already-provisioned frontend.
+      # albId: /subscriptions/xxx/resourceGroups/yyy/providers/Microsoft.ServiceNetworking/trafficControllers/zzz
+      # albFrontend: frontend
+      tls:
+        - hosts: [hostname.example]
+          secretName: hostname-tls
+      hosts:
+        - host: hostname.example
+          paths:
+            - path: /
+              pathType: Prefix
+```
+
+⚠️ This chart's test suite is template-only — it cannot prove that a real
+`Ingress`+`IngressExtension` pair actually redirects traffic end-to-end
+against a live AGC frontend, or that the main and port-80 Ingress objects
+genuinely share one frontend without conflicting. Verify this once
+against a real AKS cluster before relying on it in production.
 
 ### Values Contract
 

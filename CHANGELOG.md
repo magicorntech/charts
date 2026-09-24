@@ -1,5 +1,61 @@
 # Changelog
 
+## [2.2.0]
+
+### Added
+
+- **`destination: azure` (AKS).** New fifth destination, additive-only —
+  every existing values file's render is byte-for-byte unchanged.
+  - **L7 (`global.ingress`)**: targets **Application Gateway for
+    Containers (AGC)** via the Kubernetes Ingress API — Microsoft's
+    current recommendation, the successor to the older AGIC. New
+    `ingressClassName: azure-alb-external` (hardcoded, same pattern as
+    aws/hcp), new `global.ingress[]` fields `albId`/`albName`/
+    `albNamespace`/`albFrontend` to bind to a managed or bring-your-own
+    AGC frontend, `tls` support (same shared block gcp/datacenter already
+    use), and a real HTTP→HTTPS redirect (`sslRedirect`, default `true`,
+    same key as aws) — implemented as an `IngressExtension` CRD +
+    second port-80 Ingress, since AGC's Ingress API has no
+    single-annotation redirect the way aws-load-balancer-controller does.
+    `scheme: internal` and `wafId` are hard `fail()`s (AGC's Ingress API
+    supports neither a private frontend nor WAF) rather than silent
+    no-ops, since silently exposing a WAF-less public endpoint where the
+    author asked for internal-only/WAF-protected would be a real,
+    invisible security regression. See README's new "Azure (AKS)"
+    section for the full prerequisite list, the ignored-vs-rejected key
+    table, and the one thing this template-only test suite cannot prove
+    (a real AGC frontend routing traffic end-to-end) — verify that once
+    against a real AKS cluster before relying on it in production.
+  - **L4 (`global.service`, `type: LoadBalancer`)**: the plain **Azure
+    Load Balancer** (AKS's own cloud-provider integration, no separate
+    controller to install) — new `service.beta.kubernetes.io/
+    azure-load-balancer-health-probe-interval`/`-num-of-probe`
+    annotations derived from `global.deployment.liveness`, clamped to
+    Azure Load Balancer's own hard minimums (interval >= 5s, probe count
+    >= 2) so a liveness probe tuned for aws/http semantics can't silently
+    produce a manifest Azure would reject. `internet-facing` by default,
+    same as aws; opt into an internal Azure Load Balancer via the
+    standard `service.beta.kubernetes.io/azure-load-balancer-internal:
+    "true"` user annotation (user still wins on any collision, same
+    precedence aws/gcp/hcp/datacenter already have).
+  - **Not included in this release, planned as a separate phase**: Azure
+    Key Vault (Secrets Store CSI) as the azure counterpart to gcp's
+    Secret Manager integration (`global.secrets`).
+
+### Fixed (found while building the above)
+
+- **A single `global.ingress[]` entry with an HTTP→HTTPS redirect pair
+  produced invalid YAML** on azure specifically — a leading trim-dash on
+  the redirect's `{{ if ... }}` tag ate the newline right after the
+  literal `---` document separator that always follows an Ingress's
+  `rules:` block, gluing `---` directly onto the redirect content's first
+  line (`---apiVersion: alb.networking.azure.io/v1`). Caught by `helm
+  lint` (`invalid Yaml document separator: ...`) before this ever shipped
+  — fixed by moving the trim to the tag's trailing side instead, which
+  correctly preserves the separator's own newline while still trimming
+  the (now newline-free, since the include itself doesn't add one)
+  whitespace between the `if` and its first action.
+
 ## [2.1.1]
 
 ### Fixed

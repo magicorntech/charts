@@ -1,4 +1,4 @@
-suite: service (aws/gcp/hcp/datacenter)
+suite: service (aws/gcp/hcp/datacenter/azure)
 templates:
   - templates/service.yaml
   - templates/service.yaml
@@ -92,4 +92,62 @@ tests:
           path: metadata.annotations
           value:
             team: platform
+    template: templates/service.yaml
+
+  - it: azure + ClusterIP renders no Azure LB probe annotations
+    set:
+      global.destination: azure
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - notExists:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-health-probe-interval"]
+    template: templates/service.yaml
+
+  - it: azure + LoadBalancer renders the Azure LB health-probe annotations, not the aws ones
+    set:
+      global.destination: azure
+      global.service.type: LoadBalancer
+      global.service.annotations: {}
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-health-probe-interval"]
+          value: "15"
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-health-probe-num-of-probe"]
+          value: "2"
+      - notExists:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+    template: templates/service.yaml
+
+  - it: azure + LoadBalancer clamps a too-aggressive liveness probe to Azure LB's own hard minimums (interval >= 5s, probe count >= 2)
+    set:
+      global.destination: azure
+      global.service.type: LoadBalancer
+      global.service.annotations: {}
+      global.deployment.liveness.periodSeconds: 2
+      global.deployment.liveness.failureThreshold: 1
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-health-probe-interval"]
+          value: "5"
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-health-probe-num-of-probe"]
+          value: "2"
+    template: templates/service.yaml
+
+  - it: azure + LoadBalancer - the user's own internal annotation coexists with the platform probe annotations (no collision, different keys)
+    set:
+      global.destination: azure
+      global.service.type: LoadBalancer
+      global.service.annotations:
+        service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-internal"]
+          value: "true"
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/azure-load-balancer-health-probe-interval"]
+          value: "15"
     template: templates/service.yaml
