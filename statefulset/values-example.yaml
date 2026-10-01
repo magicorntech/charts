@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v2.2.0
+# v2.3.0
 
 global:
   # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp, datacenter and azure.
@@ -179,6 +179,16 @@ global:
       paths:
       - path: /
         pathType: Prefix
+
+  # PodDisruptionBudget (optional). Set exactly one of minAvailable / maxUnavailable;
+  # integer or percentage string. Protects against voluntary disruptions (node drains,
+  # cluster upgrades) taking too many pods at once. Keep minAvailable below
+  # replicaCount (or autoscaling.minReplicas), or drains will block forever.
+  pdb:
+    enabled: false
+    minAvailable: 1
+    # maxUnavailable: 25%
+    # unhealthyPodEvictionPolicy: AlwaysAllow # Kubernetes 1.26+
 
   # If you enable this, please read about Kubernetes HPA Behaviors. It will change the way you look at scaling inside the cluster.
   autoscaling:

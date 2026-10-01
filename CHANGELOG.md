@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.3.0]
+
+### Added
+
+- **`global.pdb` — PodDisruptionBudget**, for both the deployment and
+  statefulset umbrellas (shared `charts-common.pdb` define). Opt-in
+  (`enabled: false` by default): every existing values file renders
+  byte-for-byte as before.
+  - `minAvailable` **or** `maxUnavailable` (exactly one — both-set and
+    neither-set `fail()` at render time naming the keys), each an integer or
+    a percentage string; `0` is a real value, not "unset".
+  - Optional `unhealthyPodEvictionPolicy` (`IfHealthyBudget` | `AlwaysAllow`),
+    emitted only when set, since the field doesn't exist before Kubernetes
+    1.26.
+  - Selects the release's own `selectorLabels`, so it works unchanged for a
+    Deployment, a StatefulSet and an Argo Rollout.
+  - Schema-validated in both `values.schema.json` files (percentage pattern,
+    policy enum). See README's new "PodDisruptionBudget" section, including
+    the `minAvailable == replicas` drain-blocking footgun.
+
 ## [2.2.0]
 
 ### Added

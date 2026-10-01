@@ -84,6 +84,30 @@
             }
           }
         },
+        "pdb": {
+          "type": "object",
+          "description": "PodDisruptionBudget. Off by default. When enabled, set exactly one of minAvailable / maxUnavailable (integer or percentage string).",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "minAvailable": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string", "pattern": "^(100|[1-9]?[0-9])%$" },
+                { "type": "null" }
+              ]
+            },
+            "maxUnavailable": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string", "pattern": "^(100|[1-9]?[0-9])%$" },
+                { "type": "null" }
+              ]
+            },
+            "unhealthyPodEvictionPolicy": {
+              "enum": ["IfHealthyBudget", "AlwaysAllow", null]
+            }
+          }
+        },
         "posthooks": {
           "type": "array",
           "items": {

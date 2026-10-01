@@ -16,6 +16,7 @@ templates:
   - templates/ingress.yaml
   - templates/ingress.yaml
   - templates/hpa.yaml
+  - templates/pdb.yaml
   - templates/cronjobs.yaml
   - templates/migrations.yaml
   - templates/other-prehooks.yaml
@@ -63,6 +64,9 @@ tests:
       - hasDocuments:
           count: 0
         template: templates/hpa.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/pdb.yaml
       - hasDocuments:
           count: 0
         template: templates/cronjobs.yaml

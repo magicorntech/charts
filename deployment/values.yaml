@@ -129,6 +129,17 @@ global:
     targetMemoryUtilizationPercentage: null
     behavior: {}
 
+  # PodDisruptionBudget. Off by default (no PDB rendered at all). When
+  # enabled, set exactly one of minAvailable / maxUnavailable -- an integer
+  # or a percentage string like "50%". Selects this release's own pods, so it
+  # works for a Deployment, StatefulSet and Argo Rollout alike.
+  pdb:
+    enabled: false
+    minAvailable: null
+    maxUnavailable: null
+    # IfHealthyBudget | AlwaysAllow. Needs Kubernetes 1.26+; null omits the field.
+    unhealthyPodEvictionPolicy: null
+
   configMap:
     enabled: false
     name: ""

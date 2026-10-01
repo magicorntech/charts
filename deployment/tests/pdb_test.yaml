@@ -1,0 +1,120 @@
+suite: pdb
+templates:
+  - templates/pdb.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: disabled renders nothing
+    set:
+      global.pdb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: minAvailable as an integer renders as an integer
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: 1
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: apiVersion
+          value: policy/v1
+      - equal:
+          path: spec.minAvailable
+          value: 1
+      - notExists:
+          path: spec.maxUnavailable
+
+  - it: minAvailable as a percentage renders as a string
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "50%"
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: "50%"
+
+  - it: maxUnavailable alone renders maxUnavailable only
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: null
+      global.pdb.maxUnavailable: "25%"
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: "25%"
+      - notExists:
+          path: spec.minAvailable
+
+  - it: zero is a real value, not "unset"
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: null
+      global.pdb.maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 0
+
+  - it: setting both minAvailable and maxUnavailable fails with a message naming the keys
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: 1
+      global.pdb.maxUnavailable: 1
+    asserts:
+      - failedTemplate:
+          errorPattern: "exactly one of minAvailable or maxUnavailable"
+
+  - it: enabled with neither set fails instead of rendering a useless PDB
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: null
+      global.pdb.maxUnavailable: null
+    asserts:
+      - failedTemplate:
+          errorPattern: "neither minAvailable nor maxUnavailable"
+
+  - it: unhealthyPodEvictionPolicy is emitted only when set
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: 1
+      global.pdb.unhealthyPodEvictionPolicy: AlwaysAllow
+    asserts:
+      - equal:
+          path: spec.unhealthyPodEvictionPolicy
+          value: AlwaysAllow
+
+  - it: unhealthyPodEvictionPolicy is omitted by default (field does not exist before 1.26)
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: 1
+    asserts:
+      - notExists:
+          path: spec.unhealthyPodEvictionPolicy
+
+  - it: selects exactly the workload's own pods, named after the release
+    set:
+      global.pdb.enabled: true
+      global.pdb.minAvailable: 1
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: RELEASE-NAME
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: works unchanged with an Argo Rollout (same pod labels)
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: 1
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: RELEASE-NAME

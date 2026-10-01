@@ -107,7 +107,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.2.0
+  --version 2.3.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -119,7 +119,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.2.0
+  --version 2.3.0
 ```
 
 ## Configuration
@@ -136,6 +136,7 @@ All charts use a consistent global values structure with the following key secti
 - `global.security`: Security settings (RBAC, pod security, service accounts)
 - `global.secrets`: Secret management (GCP Secret Manager integration)
 - `global.autoscaling`: Horizontal Pod Autoscaler configuration
+- `global.pdb`: PodDisruptionBudget — see the dedicated section below
 - `global.cronjobs`: Scheduled job configurations
 - `global.prehooks` / `global.posthooks`: pre/post-install,upgrade hook Jobs — see the dedicated section below for the `--wait` caveat on posthooks
 - `global.k8sSecrets`: Plain Kubernetes Secret env-var injection
@@ -194,6 +195,34 @@ example), the `helm upgrade`/`helm install` invocation itself must pass
 `--wait` (or `--atomic`, which implies it) — this chart has no way to
 enforce that from inside the template. Without `--wait`, treat a posthook
 as running against "the release was accepted", not "the release is live."
+
+### PodDisruptionBudget (`global.pdb`)
+
+Off by default — nothing renders unless you opt in. Limits how many of the
+release's pods voluntary disruptions (node drains, cluster upgrades,
+autoscaler scale-down) may take down at once:
+
+```yaml
+global:
+  pdb:
+    enabled: true
+    minAvailable: 1        # integer or "50%" ...
+    # maxUnavailable: 25%  # ... OR this. Exactly one of the two.
+    # unhealthyPodEvictionPolicy: AlwaysAllow   # IfHealthyBudget | AlwaysAllow, Kubernetes 1.26+
+```
+
+- Set **exactly one** of `minAvailable` / `maxUnavailable`; setting both, or
+  enabling with neither, fails at render time with a message naming the keys.
+  `0` is a valid value, not "unset".
+- It selects the release's own pods (same labels as the workload), so it works
+  for a Deployment, a StatefulSet and an Argo Rollout alike. Both umbrella
+  charts support it.
+- ⚠️ Keep `minAvailable` **below** your replica count (or
+  `autoscaling.minReplicas` when autoscaling is on). With `minAvailable` equal
+  to the number of replicas no pod may ever be evicted, and node drains block
+  forever. A percentage or `maxUnavailable` avoids this by construction.
+- A PDB only guards *voluntary* evictions; it does nothing for a node that
+  dies.
 
 ### Azure (AKS)
 

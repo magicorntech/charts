@@ -102,6 +102,10 @@ global:
       - path: /
         pathType: Prefix
 
+  pdb:
+    enabled: true
+    minAvailable: 1
+
   autoscaling:
     enabled: true
     minReplicas: 2
