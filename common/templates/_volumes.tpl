@@ -97,3 +97,47 @@ charts-common.volumeMounts.gcpSecrets above.
 {{- end -}}
 {{- join "\n" $items -}}
 {{- end -}}
+
+{{/*
+Validates global.deployment.extraVolumes / extraVolumeMounts (the opt-in,
+raw pod-volume escape hatch for the Deployment/Rollout pod template: emptyDir,
+projected, hostPath, any other core/v1 Volume the chart has no dedicated key
+for). Fails at render time with the offending key named, instead of letting a
+typo surface as an API-server rejection after the rollout has started:
+  - every volume needs a `name`, and names must be unique;
+  - a volume may not reuse a chart-managed name (app-config, storage,
+    gcpsecrets) — those are built from configMap/pvc/secrets and a duplicate
+    name would make the pod invalid;
+  - every mount needs `name` + `mountPath`, and `name` must refer to an extra
+    volume or to one of the chart-managed volumes.
+Both keys default to [] (or are absent in older values files), in which case
+this renders nothing and the pod template is byte-identical to before.
+Takes the plain root context.
+*/}}
+{{- define "charts-common.validateExtraVolumes" -}}
+{{- $reserved := list "app-config" "storage" "gcpsecrets" -}}
+{{- $names := list -}}
+{{- range $i, $v := (default (list) .Values.global.deployment.extraVolumes) -}}
+{{- if not $v.name -}}
+{{- fail (printf "global.deployment.extraVolumes[%d].name is required" $i) -}}
+{{- end -}}
+{{- if has $v.name $reserved -}}
+{{- fail (printf "global.deployment.extraVolumes[%d].name %q collides with a chart-managed volume name (%s)" $i $v.name (join ", " $reserved)) -}}
+{{- end -}}
+{{- if has $v.name $names -}}
+{{- fail (printf "global.deployment.extraVolumes[%d].name %q is duplicated" $i $v.name) -}}
+{{- end -}}
+{{- $names = append $names $v.name -}}
+{{- end -}}
+{{- range $i, $m := (default (list) .Values.global.deployment.extraVolumeMounts) -}}
+{{- if not $m.name -}}
+{{- fail (printf "global.deployment.extraVolumeMounts[%d].name is required" $i) -}}
+{{- end -}}
+{{- if not $m.mountPath -}}
+{{- fail (printf "global.deployment.extraVolumeMounts[%d].mountPath is required" $i) -}}
+{{- end -}}
+{{- if not (or (has $m.name $names) (has $m.name $reserved)) -}}
+{{- fail (printf "global.deployment.extraVolumeMounts[%d].name %q does not match any global.deployment.extraVolumes entry" $i $m.name) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

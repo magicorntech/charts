@@ -11,6 +11,7 @@ under it -- same indentation-via-nindent convention as every other
 multi-line helper in this chart. Takes the plain root context.
 */}}
 {{- define "charts-common.podTemplateSpec" -}}
+{{- include "charts-common.validateExtraVolumes" . -}}
 metadata:
   {{- with .Values.global.deployment.podAnnotations }}
   annotations:
@@ -28,7 +29,7 @@ spec:
   {{- end }}
   securityContext:
     {{- toYaml .Values.global.security.podSecurityContext | nindent 4 }}
-  {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (include "charts-common.gcpSecretsEnabled" .) }}
+  {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (include "charts-common.gcpSecretsEnabled" .) .Values.global.deployment.extraVolumes }}
   volumes:
     {{- with include "charts-common.volumes.appConfig" . -}}
     {{ . | nindent 4 }}
@@ -40,6 +41,9 @@ spec:
     {{- end }}
     {{- with include "charts-common.volumes.gcpSecrets" . -}}
     {{ . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.global.deployment.extraVolumes }}
+    {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- end }}
   containers:
@@ -60,7 +64,7 @@ spec:
           protocol: TCP
         {{- end }}
       {{- end }}
-      {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (include "charts-common.gcpSecretsEnabled" .) }}
+      {{- if or .Values.global.configMap.enabled .Values.global.pvc.enabled (include "charts-common.gcpSecretsEnabled" .) .Values.global.deployment.extraVolumeMounts }}
       volumeMounts:
         {{- with include "charts-common.volumeMounts.appConfig" . -}}
         {{ . | nindent 8 }}
@@ -73,6 +77,9 @@ spec:
         {{- end }}
         {{- with include "charts-common.volumeMounts.gcpSecrets" . -}}
         {{ . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.global.deployment.extraVolumeMounts }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- end }}
       {{- if .Values.global.deployment.readiness }}

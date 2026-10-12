@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v2.3.0
+# v2.4.0
 
 global:
   # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp, datacenter and azure.
@@ -82,6 +82,17 @@ global:
     - maxSkew: 1
       topologyKey: kubernetes.io/hostname
       whenUnsatisfiable: DoNotSchedule
+    # Optional: raw pod volumes for things the chart has no dedicated key for, e.g. writable scratch
+    # space for a container running with securityContext.readOnlyRootFilesystem: true. Plain core/v1
+    # Volume / VolumeMount lists, appended after the chart-managed volumes (configMap, pvc, secrets).
+    # Volume names must be unique and may not be app-config, storage or gcpsecrets.
+    # extraVolumes:
+    # - name: scratch
+    #   emptyDir:
+    #     sizeLimit: 512Mi
+    # extraVolumeMounts:
+    # - name: scratch
+    #   mountPath: /tmp
 
   # Cluster-wide service object details.
   # If you only use your deployment as an application which does not receive traffic inside or outside cluster, you can disable this.
