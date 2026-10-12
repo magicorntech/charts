@@ -1,0 +1,34 @@
+suite: extraVolumes / extraVolumeMounts are rejected by the statefulset chart
+# The deployment umbrella supports these keys; the statefulset's pod template
+# (mandatory PVC, its own volume layout) does not. They must fail loudly rather
+# than be silently ignored.
+templates:
+  - templates/statefulset.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: extraVolumes fail with a message naming the key and the alternative
+    set:
+      global.deployment.extraVolumes:
+        - name: scratch
+          emptyDir: {}
+    asserts:
+      - failedTemplate:
+          errorPattern: "global.deployment.extraVolumes / extraVolumeMounts are not supported by the statefulset chart"
+
+  - it: extraVolumeMounts alone fail too
+    set:
+      global.deployment.extraVolumeMounts:
+        - name: scratch
+          mountPath: /tmp
+    asserts:
+      - failedTemplate:
+          errorPattern: "not supported by the statefulset chart"
+
+  - it: empty lists (the default) are fine and render nothing extra
+    set:
+      global.deployment.extraVolumes: []
+      global.deployment.extraVolumeMounts: []
+    asserts:
+      - isKind:
+          of: StatefulSet

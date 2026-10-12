@@ -16,9 +16,14 @@
     volume needs a unique `name` that does not reuse a chart-managed name;
     every mount needs `name` + `mountPath` and must refer to an extra volume or
     a chart-managed one. Failures name the offending key.
+  - A mount may only target a chart-managed volume that is actually enabled
+    (`storage` needs `pvc.enabled`, `app-config` needs `configMap.enabled`,
+    `gcpsecrets` needs secrets on gcp); otherwise it fails at render time
+    instead of rendering a mount for a volume the pod does not have.
   - Schema-validated in `deployment/values.schema.json`. The statefulset
-    umbrella (which has its own pod template and mandatory PVC) is unchanged.
-    See README's new "Extra pod volumes" section.
+    umbrella (which has its own pod template and mandatory PVC) does not support
+    these keys: setting either one there **fails at render time** rather than
+    being silently ignored. See README's new "Extra pod volumes" section.
 
 ## [2.3.0]
 

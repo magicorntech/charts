@@ -109,13 +109,20 @@ typo surface as an API-server rejection after the rollout has started:
     gcpsecrets) — those are built from configMap/pvc/secrets and a duplicate
     name would make the pod invalid;
   - every mount needs `name` + `mountPath`, and `name` must refer to an extra
-    volume or to one of the chart-managed volumes.
+    volume or to a chart-managed volume that is actually ENABLED (a mount of
+    `storage` while `pvc` is off would render a mount for a volume the pod does
+    not have, and the API server would reject the whole rollout).
 Both keys default to [] (or are absent in older values files), in which case
 this renders nothing and the pod template is byte-identical to before.
 Takes the plain root context.
 */}}
 {{- define "charts-common.validateExtraVolumes" -}}
 {{- $reserved := list "app-config" "storage" "gcpsecrets" -}}
+{{- /* The subset of the reserved volumes this release actually renders. */ -}}
+{{- $managed := list -}}
+{{- if .Values.global.configMap.enabled -}}{{- $managed = append $managed "app-config" -}}{{- end -}}
+{{- if .Values.global.pvc.enabled -}}{{- $managed = append $managed "storage" -}}{{- end -}}
+{{- if include "charts-common.gcpSecretsEnabled" . -}}{{- $managed = append $managed "gcpsecrets" -}}{{- end -}}
 {{- $names := list -}}
 {{- range $i, $v := (default (list) .Values.global.deployment.extraVolumes) -}}
 {{- if not $v.name -}}
@@ -136,8 +143,25 @@ Takes the plain root context.
 {{- if not $m.mountPath -}}
 {{- fail (printf "global.deployment.extraVolumeMounts[%d].mountPath is required" $i) -}}
 {{- end -}}
-{{- if not (or (has $m.name $names) (has $m.name $reserved)) -}}
+{{- if not (or (has $m.name $names) (has $m.name $managed)) -}}
+{{- if has $m.name $reserved -}}
+{{- $needs := dict "app-config" "global.configMap.enabled" "storage" "global.pvc.enabled" "gcpsecrets" "global.secrets.enabled (destination: gcp)" -}}
+{{- fail (printf "global.deployment.extraVolumeMounts[%d].name %q refers to a chart-managed volume that is not enabled (set %s, or mount an extraVolumes entry instead)" $i $m.name (get $needs $m.name)) -}}
+{{- end -}}
 {{- fail (printf "global.deployment.extraVolumeMounts[%d].name %q does not match any global.deployment.extraVolumes entry" $i $m.name) -}}
 {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The statefulset umbrella does not support extraVolumes / extraVolumeMounts (its
+pod template has a mandatory PVC via volumeClaimTemplates and its own volume
+layout). Rather than silently ignoring the keys -- which looks exactly like a
+working config that did nothing -- fail at render time, same precedent as
+charts-common.rolloutUnsupported. Takes the plain root context.
+*/}}
+{{- define "charts-common.extraVolumesUnsupported" -}}
+{{- if or .Values.global.deployment.extraVolumes .Values.global.deployment.extraVolumeMounts -}}
+{{- fail "global.deployment.extraVolumes / extraVolumeMounts are not supported by the statefulset chart (its pod template has a mandatory PVC and its own volume layout); remove them, or use the deployment chart" -}}
 {{- end -}}
 {{- end -}}

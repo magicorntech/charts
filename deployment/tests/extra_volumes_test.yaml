@@ -190,3 +190,51 @@ tests:
     asserts:
       - failedTemplate:
           errorMessage: 'global.deployment.extraVolumeMounts[0].name "nope" does not match any global.deployment.extraVolumes entry'
+
+  - it: a mount of a chart-managed volume that is NOT enabled fails instead of rendering a dangling mount (pvc off)
+    template: templates/deployment.yaml
+    set:
+      global.pvc.enabled: false
+      global.deployment.extraVolumeMounts:
+        - name: storage
+          mountPath: /efs/other
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.deployment.extraVolumeMounts[0].name "storage" refers to a chart-managed volume that is not enabled (set global.pvc.enabled, or mount an extraVolumes entry instead)'
+
+  - it: same for app-config when configMap is off
+    template: templates/deployment.yaml
+    set:
+      global.configMap.enabled: false
+      global.deployment.extraVolumeMounts:
+        - name: app-config
+          mountPath: /etc/other
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.deployment.extraVolumeMounts[0].name "app-config" refers to a chart-managed volume that is not enabled (set global.configMap.enabled, or mount an extraVolumes entry instead)'
+
+  - it: same for gcpsecrets when secrets are off
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumeMounts:
+        - name: gcpsecrets
+          mountPath: /opt/other
+    asserts:
+      - failedTemplate:
+          errorPattern: 'extraVolumeMounts\[0\]\.name "gcpsecrets" refers to a chart-managed volume that is not enabled'
+
+  - it: a mount of a chart-managed volume that IS enabled is still fine (pvc on)
+    template: templates/deployment.yaml
+    set:
+      global.pvc.enabled: true
+      global.deployment.extraVolumeMounts:
+        - name: storage
+          mountPath: /efs/other
+          subPath: other
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: storage
+            mountPath: /efs/other
+            subPath: other

@@ -251,11 +251,13 @@ global:
   `configMap`, `storage` from `pvc`, `gcpsecrets` from `secrets`), so existing
   volume and mount order never changes.
 - Applies to the Deployment and the Argo Rollout pod template (they share one
-  pod template). The statefulset umbrella is not affected.
+  pod template). The statefulset umbrella does **not** support them: setting
+  either key there fails at render time instead of being silently ignored.
 - Validated at render time, naming the offending key: every volume needs a
   unique `name` that is not `app-config`, `storage` or `gcpsecrets`; every mount
   needs `name` and `mountPath`, and `name` must match an `extraVolumes` entry
-  (or a chart-managed volume, e.g. a second `subPath` of the PVC).
+  (or a chart-managed volume that is **enabled**, e.g. a second `subPath` of the
+  PVC while `pvc.enabled` is true; mounting `storage` with `pvc` off fails).
 - Mounts go to the main container only. Hooks, cronjobs and posthooks are not
   affected.
 - An `emptyDir` `sizeLimit` is enforced by the kubelet, which evicts the pod
