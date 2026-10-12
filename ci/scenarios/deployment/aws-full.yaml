@@ -57,6 +57,19 @@ global:
     - maxSkew: 1
       topologyKey: kubernetes.io/hostname
       whenUnsatisfiable: DoNotSchedule
+    extraVolumes:
+    - name: scratch
+      emptyDir:
+        sizeLimit: 512Mi
+    - name: cache
+      emptyDir:
+        medium: Memory
+        sizeLimit: 64Mi
+    extraVolumeMounts:
+    - name: scratch
+      mountPath: /tmp
+    - name: cache
+      mountPath: /var/cache/app
 
   service:
     enabled: true

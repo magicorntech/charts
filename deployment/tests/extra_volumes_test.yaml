@@ -1,0 +1,192 @@
+suite: extraVolumes / extraVolumeMounts (deployment umbrella — optional, opt-in)
+templates:
+  - templates/deployment.yaml
+  - templates/rollout.yaml
+values:
+  - ../../ci/scenarios/deployment/aws-full.yaml
+tests:
+  - it: extraVolumes are appended verbatim to the pod volumes
+    template: templates/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: scratch
+            emptyDir:
+              sizeLimit: 512Mi
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: cache
+            emptyDir:
+              medium: Memory
+              sizeLimit: 64Mi
+
+  - it: extraVolumeMounts are appended verbatim to the main container
+    template: templates/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: scratch
+            mountPath: /tmp
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: cache
+            mountPath: /var/cache/app
+
+  - it: chart-managed volumes and mounts keep their order, extras come after them
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[0].name
+          value: app-config
+      - equal:
+          path: spec.template.spec.volumes[1].name
+          value: storage
+      - equal:
+          path: spec.template.spec.volumes[2].name
+          value: scratch
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: app-config
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[1].name
+          value: storage
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[2].name
+          value: scratch
+
+  - it: extras alone render the volumes block even with every chart-managed volume off
+    template: templates/deployment.yaml
+    set:
+      global.configMap.enabled: false
+      global.pvc.enabled: false
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 2
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 2
+
+  - it: nothing is rendered when no volume source is configured at all (default behaviour unchanged)
+    template: templates/deployment.yaml
+    set:
+      global.configMap.enabled: false
+      global.pvc.enabled: false
+      global.deployment.extraVolumes: []
+      global.deployment.extraVolumeMounts: []
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: a volume without a matching mount is allowed (the pod still gets the volume)
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumeMounts: []
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: scratch
+            emptyDir:
+              sizeLimit: 512Mi
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 2
+
+  - it: a mount may target a chart-managed volume (e.g. a second path of the pvc)
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumeMounts:
+        - name: storage
+          mountPath: /efs/other
+          subPath: other
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: storage
+            mountPath: /efs/other
+            subPath: other
+
+  - it: the Argo Rollout pod template carries the same extra volumes
+    template: templates/rollout.yaml
+    set:
+      global.deployment.enabled: false
+      global.rollout.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: scratch
+            emptyDir:
+              sizeLimit: 512Mi
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: scratch
+            mountPath: /tmp
+
+  - it: a volume without a name fails with the key named
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumes:
+        - emptyDir: {}
+    asserts:
+      - failedTemplate:
+          errorMessage: "global.deployment.extraVolumes[0].name is required"
+
+  - it: a volume reusing a chart-managed name fails
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumes:
+        - name: storage
+          emptyDir: {}
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.deployment.extraVolumes[0].name "storage" collides with a chart-managed volume name (app-config, storage, gcpsecrets)'
+
+  - it: duplicate extra volume names fail
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumes:
+        - name: scratch
+          emptyDir: {}
+        - name: scratch
+          emptyDir: {}
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.deployment.extraVolumes[1].name "scratch" is duplicated'
+
+  - it: a mount without a name fails
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumeMounts:
+        - mountPath: /tmp
+    asserts:
+      - failedTemplate:
+          errorMessage: "global.deployment.extraVolumeMounts[0].name is required"
+
+  - it: a mount without a mountPath fails
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumeMounts:
+        - name: scratch
+    asserts:
+      - failedTemplate:
+          errorMessage: "global.deployment.extraVolumeMounts[0].mountPath is required"
+
+  - it: a mount pointing at an unknown volume fails
+    template: templates/deployment.yaml
+    set:
+      global.deployment.extraVolumeMounts:
+        - name: nope
+          mountPath: /tmp
+    asserts:
+      - failedTemplate:
+          errorMessage: 'global.deployment.extraVolumeMounts[0].name "nope" does not match any global.deployment.extraVolumes entry'

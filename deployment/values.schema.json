@@ -22,6 +22,27 @@
                 "uri": { "type": "string" },
                 "pullPolicy": { "type": "string" }
               }
+            },
+            "extraVolumes": {
+              "type": "array",
+              "description": "Extra core/v1 Volume entries appended to the pod's volumes (e.g. emptyDir with sizeLimit). Each entry needs a unique name that is not app-config, storage or gcpsecrets (enforced at render time).",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" }
+                }
+              }
+            },
+            "extraVolumeMounts": {
+              "type": "array",
+              "description": "Extra core/v1 VolumeMount entries added to the main container. Each entry needs name and mountPath; name must match an extraVolumes entry or a chart-managed volume (enforced at render time).",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "mountPath": { "type": "string" }
+                }
+              }
             }
           }
         },

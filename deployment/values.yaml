@@ -62,6 +62,14 @@ global:
     affinity: {}
     tolerations: []
     topologySpreadConstraints: []
+    # Raw pod-volume escape hatch for volumes the chart has no dedicated key
+    # for (emptyDir with a sizeLimit, projected, hostPath, ...). Both are
+    # plain core/v1 Volume / VolumeMount lists, appended after the
+    # chart-managed volumes (configMap, pvc, gcp secrets). Empty by default
+    # -> byte-identical render to before these keys existed. Applies to the
+    # Deployment and the Argo Rollout pod template.
+    extraVolumes: []
+    extraVolumeMounts: []
 
   # Argo Rollouts (P7) -- deployment.yaml's alternative, mutually exclusive
   # with the Deployment above. Off by default; enabling it renders a

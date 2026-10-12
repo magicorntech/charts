@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v2.3.0
+# v2.4.0
 
 global:
   # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp, datacenter and azure.

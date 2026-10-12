@@ -107,7 +107,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.3.0
+  --version 2.4.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -119,7 +119,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.3.0
+  --version 2.4.0
 ```
 
 ## Configuration
@@ -223,6 +223,44 @@ global:
   forever. A percentage or `maxUnavailable` avoids this by construction.
 - A PDB only guards *voluntary* evictions; it does nothing for a node that
   dies.
+
+### Extra pod volumes (`global.deployment.extraVolumes`)
+
+Off by default — nothing renders unless you opt in. A raw escape hatch for
+pod volumes the chart has no dedicated key for: a size-limited `emptyDir`
+(writable scratch space for a container running with
+`securityContext.readOnlyRootFilesystem: true`), `projected`, `hostPath`, any
+other core/v1 `Volume`. Both keys are plain Kubernetes lists:
+
+```yaml
+global:
+  deployment:
+    extraVolumes:
+    - name: package
+      emptyDir:
+        sizeLimit: 512Mi
+    extraVolumeMounts:
+    - name: package
+      mountPath: /package
+  security:
+    securityContext:
+      readOnlyRootFilesystem: true
+```
+
+- They are appended **after** the chart-managed volumes (`app-config` from
+  `configMap`, `storage` from `pvc`, `gcpsecrets` from `secrets`), so existing
+  volume and mount order never changes.
+- Applies to the Deployment and the Argo Rollout pod template (they share one
+  pod template). The statefulset umbrella is not affected.
+- Validated at render time, naming the offending key: every volume needs a
+  unique `name` that is not `app-config`, `storage` or `gcpsecrets`; every mount
+  needs `name` and `mountPath`, and `name` must match an `extraVolumes` entry
+  (or a chart-managed volume, e.g. a second `subPath` of the PVC).
+- Mounts go to the main container only. Hooks, cronjobs and posthooks are not
+  affected.
+- An `emptyDir` `sizeLimit` is enforced by the kubelet, which evicts the pod
+  when it is exceeded; keep it above what the app actually writes. Memory-backed
+  (`medium: Memory`) volumes count against the container's memory limit.
 
 ### Azure (AKS)
 

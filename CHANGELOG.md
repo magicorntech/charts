@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.4.0]
+
+### Added
+
+- **`global.deployment.extraVolumes` / `extraVolumeMounts` — raw pod volumes**
+  for the Deployment and Argo Rollout pod template (shared
+  `charts-common.podTemplateSpec`). Opt-in (`[]` by default): every existing
+  values file renders byte-for-byte as before.
+  - Plain core/v1 `Volume` / `VolumeMount` lists, appended after the
+    chart-managed volumes (`app-config`, `storage`, `gcpsecrets`), so existing
+    order is unchanged. Typical use: a size-limited `emptyDir` for the
+    writable paths of a container running with `readOnlyRootFilesystem: true`.
+  - Render-time validation (`charts-common.validateExtraVolumes`): every
+    volume needs a unique `name` that does not reuse a chart-managed name;
+    every mount needs `name` + `mountPath` and must refer to an extra volume or
+    a chart-managed one. Failures name the offending key.
+  - Schema-validated in `deployment/values.schema.json`. The statefulset
+    umbrella (which has its own pod template and mandatory PVC) is unchanged.
+    See README's new "Extra pod volumes" section.
+
 ## [2.3.0]
 
 ### Added
