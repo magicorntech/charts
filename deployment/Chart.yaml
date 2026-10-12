@@ -2,7 +2,7 @@ apiVersion: v2
 name: charts-deployment
 description: Umbrella chart for Magicorn Deployment workloads
 type: application
-version: 2.4.0
+version: 2.4.1
 appVersion: "0.0.1"
 
 dependencies:
