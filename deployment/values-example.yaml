@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v2.4.1
+# v2.5.0
 
 global:
   # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp, datacenter and azure.
@@ -195,6 +195,28 @@ global:
     minAvailable: 1
     # maxUnavailable: 25%
     # unhealthyPodEvictionPolicy: AlwaysAllow # Kubernetes 1.26+
+
+  # Optional NetworkPolicy for this release's own pods (needs a CNI that enforces NetworkPolicy,
+  # e.g. EKS with the VPC CNI network policy feature enabled). ingress/egress are plain
+  # networking.k8s.io/v1 rule lists; a direction is controlled only when its key is set,
+  # and an empty list allows nothing. Use numeric ports (match global.service.ports.*.inner).
+  networkPolicy:
+    enabled: false
+    ingress:
+    - from:                          # e.g. only the ALB subnets may reach the app port
+      - ipBlock:
+          cidr: 10.0.0.0/21
+      ports:
+      - protocol: TCP
+        port: 80
+    - from:                          # and only the monitoring namespace may scrape metrics
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: prometheus
+      ports:
+      - protocol: TCP
+        port: 9100
+    # egress: []                     # set (even empty) to also control outbound traffic
 
   # If you enable this, please read about Kubernetes HPA Behaviors. It will change the way you look at scaling inside the cluster.
   autoscaling:

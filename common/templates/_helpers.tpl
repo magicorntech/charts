@@ -108,3 +108,16 @@ silently doing nothing on a chart where the key has no effect at all.
 {{- fail "global.rollout.enabled has no effect on the statefulset chart — Argo Rollouts has no StatefulSet controller" -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+True (non-empty string) when global.deployment.ndots is set. Deliberately NOT a
+plain truthiness test: `0` is a valid ndots value (resolv.conf `ndots:0`) and a
+bare `{{ if .Values.global.deployment.ndots }}` silently drops it. Unset / null
+(the default) or an empty string -> empty -> no dnsConfig is emitted, so the
+Kubernetes default (5) applies and renders stay byte-identical to before.
+Takes the plain root context.
+*/}}
+{{- define "charts-common.hasNdots" -}}
+{{- $n := .Values.global.deployment.ndots -}}
+{{- if and (not (kindIs "invalid" $n)) (ne (toString $n) "") -}}true{{- end -}}
+{{- end -}}

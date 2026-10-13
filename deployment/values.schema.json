@@ -129,6 +129,15 @@
             }
           }
         },
+        "networkPolicy": {
+          "type": "object",
+          "description": "NetworkPolicy for the release's own pods. Off by default. ingress / egress are plain NetworkPolicy rule lists; a direction is controlled only when its key is set (an empty list allows nothing).",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "ingress": { "oneOf": [ { "type": "array", "items": { "type": "object" } }, { "type": "null" } ] },
+            "egress": { "oneOf": [ { "type": "array", "items": { "type": "object" } }, { "type": "null" } ] }
+          }
+        },
         "posthooks": {
           "type": "array",
           "items": {

@@ -119,6 +119,25 @@ global:
     enabled: true
     minAvailable: 1
 
+  networkPolicy:
+    enabled: true
+    ingress:
+    - from:
+      - ipBlock:
+          cidr: 10.0.0.0/21
+          except:
+          - 10.0.1.5/32
+      ports:
+      - protocol: TCP
+        port: 80
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: prometheus
+      ports:
+      - protocol: TCP
+        port: 80
+
   autoscaling:
     enabled: true
     minReplicas: 2
