@@ -7,8 +7,38 @@ templates:
 values:
   - ../../ci/scenarios/statefulset/aws-full.yaml
 tests:
-  - it: unset by default — no dnsConfig anywhere, render is untouched
+  - it: default is an explicit ndots 5 on every pod spec (Kubernetes' own default, now rendered)
     set:
+      global.prehooks.otherPrehooks.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "5"
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "5"
+        template: templates/cronjobs.yaml
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "5"
+        template: templates/migrations.yaml
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "5"
+        template: templates/other-prehooks.yaml
+
+  - it: ndots null opts out (no dnsConfig anywhere, pods then get Kubernetes' own 5)
+    set:
+      global.deployment.ndots: null
       global.prehooks.otherPrehooks.enabled: true
     asserts:
       - notExists:
@@ -65,3 +95,36 @@ tests:
       - notExists:
           path: spec.template.spec.dnsPolicy
         template: templates/other-prehooks.yaml
+
+  - it: ndots 0 is a real value and is rendered (a truthiness check used to drop it)
+    set:
+      global.deployment.ndots: 0
+      global.prehooks.otherPrehooks.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "0"
+        template: templates/statefulset.yaml
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "0"
+        template: templates/cronjobs.yaml
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0]
+          value:
+            name: ndots
+            value: "0"
+        template: templates/other-prehooks.yaml
+
+  - it: ndots can be raised above the Kubernetes default of 5
+    set:
+      global.deployment.ndots: 7
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "7"
+        template: templates/statefulset.yaml

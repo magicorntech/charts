@@ -107,7 +107,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.4.1
+  --version 2.5.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -119,7 +119,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.4.1
+  --version 2.5.0
 ```
 
 ## Configuration
@@ -263,6 +263,53 @@ global:
 - An `emptyDir` `sizeLimit` is enforced by the kubelet, which evicts the pod
   when it is exceeded; keep it above what the app actually writes. Memory-backed
   (`medium: Memory`) volumes count against the container's memory limit.
+
+### NetworkPolicy (`global.networkPolicy`)
+
+Off by default — nothing renders unless you opt in. Restricts who may talk to
+the release's own pods (same selector labels as the workload, so it works for a
+Deployment, a StatefulSet and an Argo Rollout, and both umbrella charts support
+it). `ingress` / `egress` are plain `networking.k8s.io/v1` rule lists, passed
+through verbatim:
+
+```yaml
+global:
+  networkPolicy:
+    enabled: true
+    ingress:
+    - from:                            # only the ALB subnets may reach the app port
+      - ipBlock:
+          cidr: 10.0.0.0/21
+          except: [10.0.1.5/32]
+      ports:
+      - protocol: TCP
+        port: 8000                     # numeric ports are the portable choice
+    - from:                            # only Prometheus may scrape the metrics port
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: prometheus
+      ports:
+      - protocol: TCP
+        port: 9100
+```
+
+- A direction is controlled **only when its key is set**: `ingress` set means
+  Ingress is in `policyTypes`, `egress` set means Egress is. `null` (the default)
+  leaves that direction untouched. An **empty list is a real value**:
+  `ingress: []` means "allow nothing in", the pod becomes isolated.
+- Enabling with neither `ingress` nor `egress` set fails at render time with a
+  message naming the keys.
+- Prefer numeric `port` values (match `global.service.ports.*.inner`). Named ports
+  (the chart's own `one` / `metrics` container port names) are valid in the
+  Kubernetes API, but whether your CNI honours them depends on its version.
+- ⚠️ A NetworkPolicy is only **enforced** if the cluster's CNI enforces it.
+  Without enforcement the object is accepted and silently ignored. On EKS the
+  VPC CNI network policy feature has to be enabled (`enableNetworkPolicy` in the
+  `vpc-cni` add-on). Probes from the node (kubelet) are allowed automatically by
+  the VPC CNI.
+- Once a policy selects a pod, everything not listed is denied for that
+  direction. Include every legitimate source (load balancer subnets, monitoring,
+  other namespaces) before enabling it on a workload in use.
 
 ### Azure (AKS)
 

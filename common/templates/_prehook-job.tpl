@@ -41,7 +41,7 @@ spec:
       {{- with include "charts-common.serviceAccountName" $root }}
       serviceAccountName: {{ . }}
       {{- end }}
-      {{- if $root.Values.global.deployment.ndots }}
+      {{- if include "charts-common.hasNdots" $root }}
       dnsConfig:
         options:
           - name: ndots

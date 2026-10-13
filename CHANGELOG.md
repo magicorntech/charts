@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.5.0]
+
+### Added
+
+- **`global.networkPolicy` — NetworkPolicy**, for both the deployment and
+  statefulset umbrellas (shared `charts-common.networkPolicy` define). Opt-in
+  (`enabled: false` by default): every existing values file renders
+  byte-for-byte as before.
+  - Selects the release's own `selectorLabels`, so it works unchanged for a
+    Deployment, a StatefulSet and an Argo Rollout.
+  - `ingress` / `egress` are plain `networking.k8s.io/v1` rule lists passed
+    through verbatim (`ipBlock`, `namespaceSelector`, `podSelector`, ports; numeric
+    ports are the portable choice, named ports depend on the CNI). A direction
+    is controlled only when its key is set; `ingress: []` is a real value meaning
+    "allow nothing in". Enabling with neither key set fails at render time, naming
+    the keys.
+  - Schema-validated in both `values.schema.json` files. See README's new
+    "NetworkPolicy" section, including that the object is only enforced when the
+    cluster's CNI enforces NetworkPolicy (EKS: VPC CNI network policy enabled).
+
+### Changed
+
+- **`global.deployment.ndots` now defaults to `5`** (Kubernetes' own default) and
+  is rendered explicitly as pod `dnsConfig`, instead of being omitted when unset.
+  Override it from your values with any integer (`global.deployment.ndots: 2`
+  lowers it, a higher number raises it, `0` is valid); set it to `null` to omit
+  `dnsConfig` again. **Upgrade note:** the explicit default changes the pod
+  template of every workload (Deployment, StatefulSet, Rollout, cronjobs and
+  hook jobs), so the first `helm upgrade` to this chart version rolls every
+  workload once. DNS behaviour is unchanged (5 is what pods already used).
+
+### Fixed
+
+- **`global.deployment.ndots: 0` was silently dropped.** The pod `dnsConfig`
+  was gated on a truthiness check, and `0` is falsy in Go templates, so a
+  workload that asked for `ndots: 0` rendered no `dnsConfig` at all. It is now
+  rendered (new `charts-common.hasNdots` helper, used by the pod spec, cronjobs,
+  and pre/post hook jobs). Any integer, including values above 5, is honoured.
+
 ## [2.4.1]
 
 ### Fixed

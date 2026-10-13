@@ -9,7 +9,7 @@ whole list).
 */}}
 {{- define "charts-common.podSpecTail" -}}
 dnsPolicy: {{ .Values.global.deployment.dnsPolicy | default "ClusterFirst" }}
-{{- if .Values.global.deployment.ndots }}
+{{- if include "charts-common.hasNdots" . }}
 dnsConfig:
   options:
     - name: ndots

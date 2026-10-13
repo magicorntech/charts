@@ -41,12 +41,14 @@ global:
     deregistrationTime: 30
     failSeconds: 600
     revisionHistory: 10
-    # DNS resolver ndots override (k8s's own implicit default is 5).
-    # Unset/null -> no dnsConfig emitted at all -> byte-identical render to
-    # before this feature existed. Setting it rolls every workload (pod
-    # template hash changes) and changes DNS resolution behavior -- opt-in,
-    # never defaulted.
-    ndots: null
+    # DNS resolver ndots. Defaults to 5 (Kubernetes' own default), rendered
+    # explicitly as dnsConfig on every pod. Override it from your values with an
+    # integer: lower it (e.g. 2 stops short external names from walking the whole
+    # search path) or raise it; 0 is valid. Set `ndots: null` to omit dnsConfig
+    # entirely (pods then still get Kubernetes' default of 5). NOTE: the explicit
+    # default changes the pod template, so upgrading to a chart that ships this
+    # default rolls every workload once.
+    ndots: 5
     # Pod-spec-level overrides — all null by default, reproducing today's
     # hardcoded literals exactly. podManagementPolicy/updateStrategyPartition
     # only affect the statefulset chart (no equivalent concept on a
