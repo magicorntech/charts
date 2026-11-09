@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.6.0]
+
+### Added
+
+- **`global.deployment.startup` — container `startupProbe`**, for the deployment
+  and statefulset umbrellas (rendered on the Deployment, the Argo Rollout and the
+  StatefulSet). A plain `core/v1` `Probe`, passed through like `readiness` /
+  `liveness`. Opt-in (`{}` by default): every existing values file renders
+  byte-for-byte as before.
+  - While it has not succeeded the kubelet holds back the liveness and readiness
+    probes, so a slow-starting app gets `failureThreshold x periodSeconds` to start
+    instead of needing a large `liveness.initialDelaySeconds`.
+  - The load balancer health check settings (AWS target group, ALB healthcheck
+    path, Azure LB probe) are still derived from `liveness`; `startup` does not
+    affect them.
+  - See README's new "Startup probe" section.
+
 ## [2.5.0]
 
 ### Added

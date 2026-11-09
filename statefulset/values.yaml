@@ -37,6 +37,13 @@ global:
     resources: {}
     readiness: {}
     liveness: {}
+    # Startup probe (a core/v1 Probe, same shape as readiness/liveness). Empty
+    # = no startupProbe. While it has not succeeded yet the kubelet does not run
+    # the liveness or readiness probe, so a slow-starting app gets
+    # failureThreshold x periodSeconds to come up without having to inflate
+    # liveness.initialDelaySeconds for every later restart. Once it succeeds it
+    # never runs again; failing it for the whole budget restarts the container.
+    startup: {}
     podAnnotations: {}
     lifecycle: {}
     deregistrationTime: 30

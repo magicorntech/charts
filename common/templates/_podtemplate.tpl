@@ -90,6 +90,10 @@ spec:
       livenessProbe:
         {{- toYaml .Values.global.deployment.liveness | nindent 8 }}
       {{- end }}
+      {{- if .Values.global.deployment.startup }}
+      startupProbe:
+        {{- toYaml .Values.global.deployment.startup | nindent 8 }}
+      {{- end }}
       env:
         {{- toYaml .Values.global.deployment.env | nindent 8 }}
         {{- with include "charts-common.env.k8sSecrets" . -}}

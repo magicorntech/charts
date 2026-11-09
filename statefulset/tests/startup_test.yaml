@@ -1,0 +1,53 @@
+suite: startupProbe (global.deployment.startup — StatefulSet)
+templates:
+  - templates/statefulset.yaml
+values:
+  - ../../ci/scenarios/statefulset/aws-full.yaml
+tests:
+  - it: unset by default — no startupProbe, readiness/liveness untouched
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].startupProbe
+      - exists:
+          path: spec.template.spec.containers[0].readinessProbe
+      - exists:
+          path: spec.template.spec.containers[0].livenessProbe
+
+  - it: an empty startup map renders no startupProbe
+    set:
+      global.deployment.startup: {}
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].startupProbe
+
+  - it: renders the Probe verbatim next to readiness and liveness
+    set:
+      global.deployment.startup:
+        httpGet:
+          port: one
+          path: /healthz
+        periodSeconds: 5
+        failureThreshold: 60
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              port: one
+              path: /healthz
+            periodSeconds: 5
+            failureThreshold: 60
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+
+  - it: tcpSocket handler works too
+    set:
+      global.deployment.startup:
+        tcpSocket:
+          port: 5432
+        failureThreshold: 30
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.tcpSocket.port
+          value: 5432

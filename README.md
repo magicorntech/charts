@@ -107,7 +107,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.5.0
+  --version 2.6.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -119,7 +119,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.5.0
+  --version 2.6.0
 ```
 
 ## Configuration
@@ -263,6 +263,45 @@ global:
 - An `emptyDir` `sizeLimit` is enforced by the kubelet, which evicts the pod
   when it is exceeded; keep it above what the app actually writes. Memory-backed
   (`medium: Memory`) volumes count against the container's memory limit.
+
+### Startup probe (`global.deployment.startup`)
+
+Off by default — nothing renders unless you set it. A plain Kubernetes `Probe`
+(same shape as `readiness` / `liveness`: one of `httpGet`, `tcpSocket`, `exec`,
+`grpc`, plus the usual timing fields), rendered as the container's
+`startupProbe` on the Deployment, the Argo Rollout and the StatefulSet:
+
+```yaml
+global:
+  deployment:
+    startup:
+      httpGet:
+        port: one
+        path: /healthz
+      periodSeconds: 5
+      failureThreshold: 60     # up to 60 x 5s = 5 minutes to start
+    liveness:
+      httpGet:
+        port: one
+        path: /healthz
+      periodSeconds: 15
+      failureThreshold: 2      # no initialDelaySeconds needed any more
+```
+
+- **What it does.** Until the startup probe has succeeded once, the kubelet does
+  not run the liveness or readiness probe. A slow-starting app therefore gets
+  `failureThreshold x periodSeconds` to come up, without a large
+  `liveness.initialDelaySeconds` that would also delay failure detection on every
+  later restart. After the first success it never runs again.
+- **If it never succeeds** within that budget the container is killed and
+  restarted (subject to the pod's `restartPolicy`), exactly like a failing
+  liveness probe.
+- **The load balancer health check is not affected.** The AWS/Azure target-group
+  settings and the ALB healthcheck path are still derived from `liveness`, not
+  from `startup`.
+- The probe is passed through as written; Kubernetes validates it (exactly one
+  handler, positive `periodSeconds`, and so on).
+- Main container only. Hooks and cronjobs have no probes.
 
 ### NetworkPolicy (`global.networkPolicy`)
 

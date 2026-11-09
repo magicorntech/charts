@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 #
 # Author: nops@magicorn.co
-# v2.5.0
+# v2.6.0
 
 global:
   # Determines which templates to use during deployment. Valid values are: aws, hcp, gcp, datacenter and azure.
@@ -56,6 +56,16 @@ global:
       periodSeconds: 15
       successThreshold: 1
       timeoutSeconds: 5
+    # Optional startup probe: until it succeeds once, liveness and readiness are not
+    # run, so a slow-starting app gets failureThreshold x periodSeconds to start
+    # (here up to 5 minutes) without inflating liveness.initialDelaySeconds. Not used
+    # for the load balancer health check (that still follows liveness). Off when unset.
+    # startup:
+    #   httpGet:
+    #     port: one
+    #     path: /healthz
+    #   failureThreshold: 60
+    #   periodSeconds: 5
     # If we don't like cluster autoscaler to poke around on several deployments, then we make this false.
     podAnnotations:
       cluster-autoscaler.kubernetes.io/safe-to-evict: 'true'
