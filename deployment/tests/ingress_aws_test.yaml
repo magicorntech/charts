@@ -169,6 +169,60 @@ tests:
       - notExists:
           path: metadata.annotations["alb.ingress.kubernetes.io/ssl-redirect"]
 
+  - it: NEW - additionalSuccessCodes unset keeps the ALB success codes at the old hardcoded "200"
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/success-codes"]
+          value: "200"
+
+  - it: NEW - additionalSuccessCodes appends to the default "200", with ranges, integers and duplicates handled
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          additionalSuccessCodes: [204, "200", "204", "300-399"]
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/success-codes"]
+          value: "200,204,300-399"
+
+  - it: NEW - additionalSuccessCodes as an empty list renders plain "200"
+    set:
+      global.ingress:
+        - enabled: true
+          annotations: {}
+          className: null
+          idleTimeout: 60
+          scheme: internet-facing
+          certificateId: arn:example
+          wafId: null
+          additionalSuccessCodes: []
+          sslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+          lbId: lb
+          lbOrder: 100
+          hosts:
+            - host: hostname.example
+              paths:
+                - path: /
+                  pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["alb.ingress.kubernetes.io/success-codes"]
+          value: "200"
+
   - it: backend uses the service.ports.one.outer port
     asserts:
       - equal:

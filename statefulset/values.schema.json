@@ -60,6 +60,15 @@
               "listenPorts": { "type": "string", "enum": ["http", "https", "both"] },
               "sslRedirect": { "type": "boolean" },
               "healthcheckPath": { "type": "string" },
+              "additionalSuccessCodes": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    { "type": "string", "pattern": "^[0-9]{3}(-[0-9]{3})?$" },
+                    { "type": "integer", "minimum": 200, "maximum": 499 }
+                  ]
+                }
+              },
               "name": { "type": "string" },
               "servicePortName": { "type": "string" },
               "albId": { "type": ["string", "null"] },

@@ -37,7 +37,11 @@ alb.ingress.kubernetes.io/ssl-policy: {{ $ingress.sslPolicy | quote }}
 {{- if ne (toString $ingress.sslRedirect) "false" }}
 alb.ingress.kubernetes.io/ssl-redirect: '443'
 {{- end }}
-alb.ingress.kubernetes.io/success-codes: '200'
+{{- $successCodes := list "200" }}
+{{- range $ingress.additionalSuccessCodes }}
+{{- $successCodes = append $successCodes (toString .) }}
+{{- end }}
+alb.ingress.kubernetes.io/success-codes: {{ $successCodes | uniq | join "," | squote }}
 alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds={{ $root.Values.global.deployment.deregistrationTime }}
 alb.ingress.kubernetes.io/target-type: ip
 alb.ingress.kubernetes.io/unhealthy-threshold-count: {{ $root.Values.global.deployment.liveness.failureThreshold | quote }}
