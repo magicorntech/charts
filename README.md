@@ -107,7 +107,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-deployment \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.6.0
+  --version 2.7.0
 ```
 
 #### StatefulSet Chart (Stateful Applications)
@@ -119,7 +119,7 @@ helm upgrade --install --create-namespace \
   $APP_NAME oci://public.ecr.aws/magicorn/charts-statefulset \
   -f values-example.yaml \
   -n $APP_NAME-$ENVIRONMENT \
-  --version 2.6.0
+  --version 2.7.0
 ```
 
 ## Configuration
@@ -383,7 +383,7 @@ instead of silently ignoring it:**
 |---|---|
 | `scheme: internal` | **Rejected at render time.** AGC's Ingress API has no private/internal frontend. Expose privately instead via `global.service.type: LoadBalancer` + the `service.beta.kubernetes.io/azure-load-balancer-internal: "true"` annotation (a real internal Azure Load Balancer). |
 | `wafId` | **Rejected at render time.** WAF on AGC is only exposed via the Gateway API, not the Ingress API this chart uses. |
-| `sslPolicy`, `idleTimeout`, `lbId`, `lbOrder`, `certificateId`, `listenPorts`, `healthcheckPath` | Silently ignored (AWS-only) — AGC's Ingress API has no equivalent knob for any of these (health probes fall back to the pod's own readiness probe; ports are fixed at 80/443). |
+| `sslPolicy`, `idleTimeout`, `lbId`, `lbOrder`, `certificateId`, `listenPorts`, `healthcheckPath`, `additionalSuccessCodes` | Silently ignored (AWS-only) — AGC's Ingress API has no equivalent knob for any of these (health probes fall back to the pod's own readiness probe; ports are fixed at 80/443). |
 
 **HTTP → HTTPS redirect** (`sslRedirect`, default `true`, same key as
 AWS): AGC has no single-annotation redirect — when `tls` is set and

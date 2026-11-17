@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.7.0]
+
+### Added
+
+- **`global.ingress[].additionalSuccessCodes` — extra ALB healthcheck success
+  codes** (AWS only), for the deployment and statefulset umbrellas. The
+  `alb.ingress.kubernetes.io/success-codes` annotation was hardcoded to `'200'`,
+  and since platform annotations win over `ingress[].annotations` on a collision,
+  it could not be changed at all, so an app whose health endpoint answers `204`
+  had every target marked unhealthy. Opt-in: unset or `[]` renders `'200'` as
+  before, so every existing values file renders byte-for-byte as before.
+  - The codes are appended after `200` (`["204"]` → `'200,204'`), duplicates are
+    dropped. Items are strings or integers; a string can be a range like
+    `"300-399"`.
+  - Schema-validated in both `values.schema.json` files (`200`–`499`, a 3-digit
+    code or a range). Silently ignored on azure, like the other AWS-only keys.
+
 ## [2.6.0]
 
 ### Added
